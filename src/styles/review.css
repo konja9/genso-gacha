@@ -1,0 +1,100 @@
+/* 復習・自主練習 */
+.review { display: grid; gap: 14px; }
+.review-head { display: flex; align-items: center; gap: 10px; }
+.mode-tag { border-radius: 999px; padding: 2px 12px; font-size: 0.8rem; font-weight: 700; }
+.mode-tag.due { background: var(--accent-strong); }
+.mode-tag.practice { background: var(--surface-2); border: 1px solid var(--line); }
+.progress-text { font-variant-numeric: tabular-nums; color: var(--muted); }
+.review-head .link-btn { margin-left: auto; }
+.progress-bar { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.progress-bar span { display: block; height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+.question {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px 20px;
+  text-align: center;
+  display: grid;
+  gap: 8px;
+}
+.q-meta { display: flex; justify-content: space-between; align-items: center; }
+.q-meta .card-stage { margin: 0; }
+.fmt-label { font-size: 0.75rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; }
+.q-instruction { color: var(--muted); }
+.q-prompt { font-size: 2.6rem; font-weight: 800; line-height: 1.2; word-break: break-word; }
+.fmt-symbolToName .q-prompt, .fmt-numberToName .q-prompt { font-size: 3.4rem; }
+.fmt-useToElement .q-prompt { font-size: 1.05rem; font-weight: 600; text-align: left; line-height: 1.7; }
+.fmt-category .q-prompt { font-size: 1.8rem; }
+
+.choices { display: grid; gap: 10px; }
+.choices.grid { grid-template-columns: 1fr 1fr; }
+.choice {
+  appearance: none;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.choices.grid .choice { font-size: 1.5rem; }
+.choice:active:not(:disabled) { transform: scale(0.98); }
+.choice:disabled { cursor: default; }
+.choice.is-answer { border-color: var(--good); background: color-mix(in srgb, var(--good) 22%, var(--surface-2)); }
+.choice.is-wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, var(--surface-2)); }
+.choice:disabled:not(.is-answer):not(.is-wrong) { opacity: 0.5; }
+
+.feedback-area { display: grid; gap: 12px; scroll-margin-bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom)); }
+.feedback { border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; border: 2px solid var(--line); background: var(--surface); }
+.feedback.ok { border-color: var(--good); }
+.feedback.ng { border-color: var(--bad); }
+.fb-title { font-size: 1.5rem; font-weight: 900; }
+.feedback.ok .fb-title { color: var(--good); }
+.feedback.ng .fb-title { color: var(--bad); }
+.fb-reward { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.stone-gain { color: var(--stone); font-size: 1.3rem; font-weight: 800; }
+.relation { font-weight: 700; font-size: 0.95rem; }
+
+/* 惜しさのレベル（最小版。演出の段階で強弱をつける） */
+.feedback.close-3 .fb-title { color: var(--warn); font-size: 1.9rem; }
+.feedback.close-2 .fb-title { color: var(--warn); }
+
+.compare { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.compare th, .compare td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: center; }
+.compare thead th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+.compare tbody th { color: var(--muted); font-weight: 600; text-align: left; white-space: nowrap; }
+.compare tr.diff td.col-chosen { color: var(--bad); font-weight: 700; }
+.compare tr.diff td.col-answer { color: var(--good); font-weight: 700; }
+.compare tr.same td { color: var(--muted); }
+
+.compare-cats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+.compare-cats > div { display: grid; gap: 4px; justify-items: center; }
+.cat-chip { border-radius: 999px; padding: 2px 12px; font-weight: 700; background: color-mix(in srgb, var(--cat) 30%, transparent); border: 1px solid var(--cat); }
+
+.answer-summary { display: flex; gap: 12px; align-items: flex-start; background: rgba(0, 0, 0, 0.18); border-radius: 12px; padding: 10px; }
+.as-symbol {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--cat) 35%, var(--surface));
+  border: 1px solid var(--cat);
+}
+.as-body { display: grid; gap: 2px; min-width: 0; }
+.as-name { font-weight: 800; }
+.as-en { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: 8px; }
+.as-cat { font-size: 0.8rem; color: var(--muted); }
+.as-use { font-size: 0.88rem; }
+
+.summary { text-align: center; justify-items: center; }
+.reward-line { color: var(--stone); font-size: 1.4rem; font-weight: 800; }
+.summary-actions { display: grid; gap: 10px; width: 100%; }
