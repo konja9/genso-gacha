@@ -99,3 +99,17 @@ export function pullMany(
   }
   return { outcomes, pityCount: pity };
 }
+
+/** 結果の中でいちばん高いレア度（ガチャの光の色を決めるのに使う） */
+export function highestRarity(outcomes: readonly { rarity: Rarity }[]): Rarity {
+  let best: Rarity = 'N';
+  for (const o of outcomes) if (RARITIES.indexOf(o.rarity) > RARITIES.indexOf(best)) best = o.rarity;
+  return best;
+}
+
+/** まだ持っていない元素を、レア度ごとに原子番号順で返す（かけら交換の候補） */
+export function unownedByRarity(owned: ReadonlySet<number>, table: RarityTable): Record<Rarity, number[]> {
+  const out = {} as Record<Rarity, number[]>;
+  for (const r of RARITIES) out[r] = table[r].filter((n) => !owned.has(n)).sort((a, b) => a - b);
+  return out;
+}

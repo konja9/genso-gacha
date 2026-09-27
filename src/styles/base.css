@@ -197,3 +197,13 @@ h2 { font-size: 1.05rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ホームの見出しと設定ボタン */
+.home-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.icon-btn { appearance: none; background: var(--surface); border: 1px solid var(--line); color: var(--muted); border-radius: 12px; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; }
+.screen-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.screen-head .screen-title { margin: 0; }
+
+/* レア度の札 */
+.rar-badge { display: inline-block; border: 1px solid var(--rar); color: var(--rar); border-radius: 6px; padding: 0 6px; font-weight: 800; font-size: 0.8rem; }
+.rar-badge.rar-ssr { color: var(--rar-ssr); }

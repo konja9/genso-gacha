@@ -8,6 +8,9 @@ import { renderHome } from './screens/home';
 import { renderReview } from './screens/review';
 import { renderGacha } from './screens/gacha';
 import { renderSettings } from './screens/settings';
+import { renderExchange } from './screens/exchange';
+import { renderZukan } from './screens/zukan';
+import { renderStats } from './screens/stats';
 import type { Route } from './nav';
 import { currentRoute } from './nav';
 
@@ -19,15 +22,19 @@ const SCREENS: Record<Route, Screen> = {
   review: (root) => renderReview(root, 'due'),
   practice: (root) => renderReview(root, 'practice'),
   gacha: renderGacha,
+  exchange: renderExchange,
+  zukan: renderZukan,
+  stats: renderStats,
   settings: renderSettings,
 };
 
-/** 下のタブ（practice は「復習」タブの仲間として扱う） */
+/** 下のタブ（practice は「復習」、exchange は「ガチャ」、settings は「記録」タブの仲間として扱う） */
 const TABS: { route: Route; label: string; icon: string }[] = [
   { route: 'home', label: 'ホーム', icon: '⌂' },
   { route: 'review', label: '復習', icon: '✎' },
   { route: 'gacha', label: 'ガチャ', icon: '✦' },
-  { route: 'settings', label: '設定', icon: '⚙' },
+  { route: 'zukan', label: '図鑑', icon: '▦' },
+  { route: 'stats', label: '記録', icon: '↗' },
 ];
 
 let main: HTMLElement;
@@ -46,7 +53,8 @@ function render(): void {
 
 function renderNav(): void {
   const route = currentRoute();
-  const active = route === 'practice' ? 'review' : route;
+  const parent: Partial<Record<Route, Route>> = { practice: 'review', exchange: 'gacha', settings: 'stats' };
+  const active = parent[route] ?? route;
   const due = dueList(store.get().cards, today()).length;
   replaceChildren(
     nav,

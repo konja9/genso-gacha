@@ -1,6 +1,6 @@
-/* 元素カード（画像は使わず CSS だけで描く） */
+/* 元素カード（画像は使わず CSS と SVG で描く）
+   --cat（分類の色）と --rar（レア度の色）は base.css の .cat-… / .rar-… で決まる */
 .card {
-  /* --cat（分類の色）と --rar（レア度の色）は base.css の .cat-… / .rar-… で決まる */
   position: relative;
   border-radius: var(--radius);
   border: 2px solid var(--rar);
@@ -10,18 +10,18 @@
   justify-items: center;
   text-align: center;
   overflow: hidden;
+  isolation: isolate;
 }
 .card-full { padding: 14px 16px 16px; gap: 2px; max-width: 320px; margin: 0 auto; width: 100%; }
-.card-mini { padding: 8px 4px 8px; gap: 0; }
+.card-mini { padding: 6px 4px 8px; gap: 0; }
 
-.card-top { width: 100%; display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+.card-top { width: 100%; display: flex; justify-content: space-between; align-items: center; font-weight: 700; gap: 4px; }
 .card-num { font-variant-numeric: tabular-nums; color: var(--muted); }
-.card-rarity {
-  color: var(--rar);
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  font-size: 0.85rem;
-}
+.card-star { color: var(--rar-sr); font-size: 0.8em; margin-right: auto; }
+.card-rarity { color: var(--rar); font-weight: 900; letter-spacing: 0.04em; font-size: 0.85rem; }
+.card-mini .card-top { font-size: 0.72rem; }
+.card-mini .card-rarity { font-size: 0.7rem; }
+
 .card-tag {
   background: var(--good);
   color: #062b1b;
@@ -34,9 +34,24 @@
 }
 .card-tag.is-dup { background: var(--fragment); color: #1d1033; }
 .card-mini .card-tag { font-size: 0.6rem; padding: 0 5px; margin-top: 2px; }
-.card-symbol { font-size: 3.6rem; font-weight: 800; line-height: 1.1; color: color-mix(in srgb, var(--cat) 55%, #fff); }
-.card-mini .card-symbol { font-size: 1.7rem; margin-top: 2px; }
-.card-mini .card-top { font-size: 0.72rem; }
+
+/* 電子殻の図と元素記号 */
+.card-visual { position: relative; display: grid; place-items: center; width: 100%; }
+/* 詳しい表示：左に元素記号、右に電子殻の図 */
+.card-full .card-visual { grid-template-columns: 1fr auto; gap: 8px; margin: 4px 0; }
+.card-bohr { width: 132px; height: 132px; }
+.card-full .card-symbol { font-size: 3.8rem; }
+.card-bohr-bg { position: absolute; width: 64px; height: 64px; opacity: 0.4; }
+.bohr-orbit { fill: none; stroke: color-mix(in srgb, var(--cat) 55%, transparent); stroke-width: 0.8; }
+.bohr-electron { fill: #dff3ff; }
+.bohr-nucleus { fill: var(--cat); stroke: rgba(255, 255, 255, 0.6); stroke-width: 0.8; }
+.bohr-ring { transform-box: view-box; transform-origin: 50% 50%; animation: bohr-spin 24s linear infinite; }
+.bohr-ring.ccw { animation-direction: reverse; }
+.card-mini .bohr-ring, .zukan-cell .bohr-ring { animation: none; }
+@keyframes bohr-spin { to { transform: rotate(360deg); } }
+
+.card-symbol { font-size: 3rem; font-weight: 800; line-height: 1.1; color: color-mix(in srgb, var(--cat) 55%, #fff); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+.card-mini .card-symbol { position: relative; font-size: 1.7rem; margin: 8px 0 4px; }
 .card-name { font-size: 1.2rem; font-weight: 700; }
 .card-mini .card-name { font-size: 0.72rem; line-height: 1.3; word-break: break-all; }
 .card-en { color: var(--muted); font-size: 0.85rem; }
@@ -50,28 +65,51 @@
 }
 .card-mini .card-cat { font-size: 0.56rem; padding: 0 4px; margin-top: 3px; line-height: 1.5; }
 .card-stage { display: flex; gap: 4px; margin-top: 6px; }
+.card-mini .card-stage { gap: 2px; margin-top: 4px; }
 .pip { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); }
+.card-mini .pip { width: 5px; height: 5px; }
 .pip.on { background: var(--rar-sr); }
-.card-facts {
-  width: 100%;
-  margin: 10px 0 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-}
+.card-facts { width: 100%; margin: 10px 0 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .fact { background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 4px 2px; }
 .fact dt { font-size: 0.68rem; color: var(--muted); }
 .fact dd { margin: 0; font-weight: 700; font-size: 0.85rem; word-break: break-all; }
 .card-use { margin-top: 8px; font-size: 0.88rem; text-align: left; color: #dfe3ff; }
 
-/* レア度の枠（最小版。演出の段階で作り込む） */
-.card.rar-sr { border-width: 3px; box-shadow: 0 0 14px color-mix(in srgb, var(--rar-sr) 45%, transparent); }
+/* ───── レア度の枠 ───── */
+/* N：細い灰色の線 */
+/* R：銀青の二重線 */
+.card.rar-r { box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px color-mix(in srgb, var(--rar-r) 60%, transparent); }
+/* SR：金の太枠と四隅の飾り、ほのかな光 */
+.card.rar-sr {
+  border-width: 3px;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rar-sr) 45%, transparent), inset 0 0 0 1px rgba(255, 236, 170, 0.5);
+  background:
+    radial-gradient(circle at 0 0, var(--rar-sr) 0 5px, transparent 6px),
+    radial-gradient(circle at 100% 0, var(--rar-sr) 0 5px, transparent 6px),
+    radial-gradient(circle at 0 100%, var(--rar-sr) 0 5px, transparent 6px),
+    radial-gradient(circle at 100% 100%, var(--rar-sr) 0 5px, transparent 6px),
+    linear-gradient(165deg, color-mix(in srgb, var(--cat) 38%, var(--surface)) 0%, var(--surface) 62%);
+}
+/* SSR：虹色に回る枠と、表面を流れる光 */
+@property --spin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .card.rar-ssr {
   border: 3px solid transparent;
   background:
     linear-gradient(165deg, color-mix(in srgb, var(--cat) 38%, var(--surface)) 0%, var(--surface) 62%) padding-box,
-    conic-gradient(from 0deg, #ff7aa8, #ffd36e, #7dffb0, #6ec8ff, #b18cff, #ff7aa8) border-box;
-  box-shadow: 0 0 18px rgba(255, 139, 216, 0.4);
+    conic-gradient(from var(--spin), #ff7aa8, #ffd36e, #7dffb0, #6ec8ff, #b18cff, #ff7aa8) border-box;
+  box-shadow: 0 0 18px rgba(255, 139, 216, 0.45);
+  animation: ssr-spin 4s linear infinite;
+}
+@keyframes ssr-spin { to { --spin: 360deg; } }
+.card.rar-ssr::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.16) 45%, transparent 60%);
+  background-size: 250% 100%;
+  animation: sheen 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
 }
 .card.rar-ssr .card-rarity {
   background: linear-gradient(90deg, #ff7aa8, #ffd36e, #7dffb0, #6ec8ff, #b18cff);
@@ -79,3 +117,43 @@
   background-clip: text;
   color: transparent;
 }
+@keyframes sheen { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+/* ───── 習熟度で進化する枠（内側の線） ───── */
+.card::after { content: ''; position: absolute; pointer-events: none; border-radius: calc(var(--radius) - 5px); z-index: 2; }
+/* 段階2〜3：銀の内枠 */
+.card.frame-silver::after { inset: 5px; border: 1px solid rgba(220, 228, 255, 0.55); }
+/* 段階4：金の二重内枠 */
+.card.frame-gold::after { inset: 5px; border: 3px double rgba(242, 193, 78, 0.85); box-shadow: inset 0 0 12px rgba(242, 193, 78, 0.2); }
+/* 段階5：マスター枠（白金の太い内枠、光の筋、MASTER の帯） */
+.card.frame-master::after {
+  inset: 4px;
+  border: 3px solid transparent;
+  background: linear-gradient(135deg, #fff6d6, #f2c14e, #fffbe8, #c7a2ff, #fff6d6) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  box-shadow: 0 0 12px rgba(255, 230, 150, 0.5);
+}
+.card.frame-master { box-shadow: 0 0 22px rgba(255, 220, 120, 0.45); }
+.card.frame-master:not(.rar-ssr)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 244, 200, 0.18) 48%, transparent 60%);
+  background-size: 250% 100%;
+  animation: sheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.master-ribbon {
+  margin-top: 8px;
+  background: linear-gradient(90deg, #c99a2e, #fff0b3, #c99a2e);
+  color: #3a2600;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  font-size: 0.72rem;
+  padding: 1px 14px 1px calc(14px + 0.3em);
+  border-radius: 4px;
+}
+.card-mini .master-ribbon { font-size: 0.5rem; letter-spacing: 0.1em; padding: 0 4px; margin-top: 3px; }

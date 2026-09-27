@@ -1,8 +1,8 @@
 // 画面の移動。各画面からはここの go() を呼ぶ。
 
-export type Route = 'home' | 'review' | 'practice' | 'gacha' | 'settings';
+export type Route = 'home' | 'review' | 'practice' | 'gacha' | 'exchange' | 'zukan' | 'stats' | 'settings';
 
-export const ROUTES: readonly Route[] = ['home', 'review', 'practice', 'gacha', 'settings'];
+export const ROUTES: readonly Route[] = ['home', 'review', 'practice', 'gacha', 'exchange', 'zukan', 'stats', 'settings'];
 
 /** 今の URL から画面を決める（知らないものはホーム） */
 export function currentRoute(): Route {
