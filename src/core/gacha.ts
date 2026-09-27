@@ -1,6 +1,7 @@
 // ガチャの抽選
 // ・レア度を排出率で決める（N 55% / R 30% / SR 12% / SSR 3% などは config.ts）
 // ・天井：SR以上が出ないまま規定回数目になったら、その回はSR以上が確定
+// ・10連：SR以上が1枚確定（9枚目までに出なければ、10枚目がSR以上になる）
 // ・同じレア度の中では、未所持の元素を優先して出す
 // ・すでに持っている元素が出たら「かけら」に変わる
 import { CONFIG } from '../config';
@@ -19,6 +20,8 @@ export interface PullOutcome {
   fragments: number;
   /** 天井で確定したSR以上か */
   pityTriggered: boolean;
+  /** 10連の確定枠で出たSR以上か */
+  guaranteed: boolean;
 }
 
 /** SR以上か */
@@ -29,13 +32,15 @@ export function isHighRarity(r: Rarity): boolean {
 /**
  * レア度を決める。
  * pityCount は「SR以上が出ないまま続いた回数」。天井の1つ手前まで来ていたら SR 以上を確定させる。
+ * forceHigh が true のとき（10連の確定枠）も SR 以上を確定させる。
  * 確定のときの SR と SSR の割合は、元の排出率の比（12:3）のまま。
  */
-export function rollRarity(pityCount: number, rng: Rng): { rarity: Rarity; pityTriggered: boolean } {
+export function rollRarity(pityCount: number, rng: Rng, forceHigh = false): { rarity: Rarity; pityTriggered: boolean } {
   const { rates, pity } = CONFIG.gacha;
-  if (pityCount >= pity - 1) {
+  const pityTriggered = pityCount >= pity - 1;
+  if (pityTriggered || forceHigh) {
     const r = rng() * (rates.SR + rates.SSR);
-    return { rarity: r < rates.SSR ? 'SSR' : 'SR', pityTriggered: true };
+    return { rarity: r < rates.SSR ? 'SSR' : 'SR', pityTriggered };
   }
   const r = rng();
   let acc = 0;
@@ -73,6 +78,7 @@ export function pickElement(
 /**
  * count 回続けて引く。10連でも1回ずつ順番に引き、途中で手に入れた元素は所持扱いにする
  * （同じ10連の中で同じ未所持元素が2回出ることはない）。
+ * guaranteeHigh が true なら、最後の1回までに SR 以上が出ていなければ最後の1回を SR 以上にする。
  */
 export function pullMany(
   count: number,
@@ -80,12 +86,14 @@ export function pullMany(
   pityCount: number,
   table: RarityTable,
   rng: Rng,
+  guaranteeHigh = false,
 ): { outcomes: PullOutcome[]; pityCount: number } {
   const have = new Set(owned);
   const outcomes: PullOutcome[] = [];
   let pity = pityCount;
   for (let i = 0; i < count; i++) {
-    const { rarity, pityTriggered } = rollRarity(pity, rng);
+    const force = guaranteeHigh && i === count - 1 && !outcomes.some((o) => isHighRarity(o.rarity));
+    const { rarity, pityTriggered } = rollRarity(pity, rng, force);
     const { number, isNew } = pickElement(rarity, have, table, rng);
     have.add(number);
     pity = nextPityCount(pity, rarity);
@@ -95,6 +103,7 @@ export function pullMany(
       isNew,
       fragments: isNew ? 0 : CONFIG.fragments.perDuplicate[rarity],
       pityTriggered,
+      guaranteed: force && !pityTriggered,
     });
   }
   return { outcomes, pityCount: pity };

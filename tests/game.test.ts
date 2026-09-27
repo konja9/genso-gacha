@@ -97,6 +97,11 @@ describe('ガチャを引く', () => {
     expect(r.data.cards[n].due).toBe(TOMORROW);
   });
 
+  it('10連はSR以上が1枚確定（1回引くを10回とは違う）', () => {
+    const { outcomes } = doPull(createInitialSave(), 'ten', NOON, RARITY_TABLE, () => 0);
+    expect(outcomes.filter((o) => o.rarity === 'SR' || o.rarity === 'SSR')).toHaveLength(1);
+  });
+
   it('10連は10枚引けて、石が決まった数だけ減る', () => {
     const { data, outcomes } = doPull(createInitialSave(), 'ten', NOON, RARITY_TABLE, seededRng(2));
     expect(outcomes).toHaveLength(10);

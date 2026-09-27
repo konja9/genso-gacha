@@ -1,5 +1,5 @@
 // ガチャ画面
-// ・6時間ごとに回復する無料ガチャ（0時・6時・12時・18時）、1回、10連
+// ・6時間ごとに回復する無料ガチャ（0時・6時・12時・18時）、1回、10連（SR以上1枚確定）
 // ・SR以上確定までの残り回数を表示
 // ・引くとレア度に応じた色の光の演出が入り、カードが1枚ずつ現れる
 // ・新しく入手した元素は、その場で学習対象になる
@@ -32,7 +32,7 @@ export function renderGacha(root: HTMLElement): () => void {
     h(
       'p',
       { class: 'rates muted' },
-      `排出率 ${RARITIES.map((r) => `${r} ${Math.round(CONFIG.gacha.rates[r] * 100)}%`).join(' / ')}・${CONFIG.gacha.pity}回目までにSR以上確定・同じレア度では未所持を優先`,
+      `排出率 ${RARITIES.map((r) => `${r} ${Math.round(CONFIG.gacha.rates[r] * 100)}%`).join(' / ')}・${CONFIG.gacha.pity}回目までにSR以上確定${CONFIG.gacha.tenGuaranteeHigh ? '・10連はSR以上1枚確定' : ''}・同じレア度では未所持を優先`,
     ),
   );
   /** 演出中は二重に引けないようにする */
@@ -69,7 +69,7 @@ export function renderGacha(root: HTMLElement): () => void {
         free ? '6時間ごと' : `${CONFIG.gacha.freeSlotStartHours.join('・')}時に回復`,
       ),
       pullButton('single', '1回引く', `石${pullCost('single')}`),
-      pullButton('ten', '10連で引く', `石${pullCost('ten')}`),
+      pullButton('ten', '10連で引く', CONFIG.gacha.tenGuaranteeHigh ? `石${pullCost('ten')}・SR以上1枚確定` : `石${pullCost('ten')}`),
       h(
         'button',
         { class: 'btn btn-sub btn-exchange', disabled: !canExchange(data), onclick: () => go('exchange') },

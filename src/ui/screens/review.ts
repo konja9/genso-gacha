@@ -3,26 +3,39 @@
 // ・自主練習では石も段階も変わらないが、正解すると1日の上限まで「かけら」がもらえる
 // ・不正解のときは、選んだ元素と正解を並べて違いを見せ、周期表で近いほど「惜しい」を強く出す
 // ・はじめて出題するカードは、先にカードを大きく見せてから問題に進む
+// ・問題は4択のほか、周期表の位置・電子殻の図を見て答える形式と、記号を文字タイルで入力する形式がある
 import { CONFIG } from '../../config';
 import type { ClosenessLevel } from '../../core/closeness';
 import { CLOSENESS_LABEL, categoryCloseness, elementCloseness } from '../../core/closeness';
 import { daysBetween, formatDuration, toDateKey } from '../../core/date';
 import { gridDistance, isFBlock } from '../../core/periodic';
 import type { Question } from '../../core/quiz';
-import { FORMAT_LABEL, formatFor, makeQuestion } from '../../core/quiz';
+import { FORMAT_LABEL, formatFor, makeQuestion, valenceOf } from '../../core/quiz';
 import { dueList, nextRecheck, practiceList } from '../../core/srs';
 import { ELEMENTS, getElement } from '../../data/elements';
 import type { AnswerKind, AnswerResult } from '../../state/game';
 import { answerDue, answerKind, answerPractice, practiceFragmentsLeft } from '../../state/game';
 import type { Category, ElementData } from '../../types';
+import { renderBohr } from '../bohr';
 import { renderCard, stagePips } from '../card';
 import { CATEGORY_CLASS } from '../colors';
 import { h, replaceChildren } from '../dom';
+import type { MiniMark } from '../minitable';
 import { renderMiniTable } from '../minitable';
 import { go } from '../nav';
 import { store } from '../store';
 
 type Mode = 'due' | 'practice';
+
+/** 選んだ（入力した）答え */
+type Chosen =
+  | { type: 'element'; number: number }
+  | { type: 'category'; value: Category }
+  | { type: 'valence'; value: number }
+  | { type: 'symbol'; text: string };
+
+/** 元素記号のいちばん長い文字数（入力できる文字数の上限） */
+const SYMBOL_MAX = Math.max(...ELEMENTS.map((e) => e.symbol.length));
 
 export function renderReview(root: HTMLElement, mode: Mode): void {
   const start = new Date();
@@ -92,13 +105,14 @@ export function renderReview(root: HTMLElement, mode: Mode): void {
     const recheckStep = kind === 'recheck' && card.recheck ? card.recheck.step : 0;
     // 形式は回数で順番に回す。確認は、直前の復習の次の形式から始める（同じ形式が続かないように）
     const seq = kind === 'review' ? card.reviews : kind === 'recheck' ? card.reviews + recheckStep : card.practiced;
-    const q = makeQuestion(el, formatFor(card.stage, seq), ELEMENTS, Math.random);
+    const q = makeQuestion(el, formatFor(card.stage, seq, el), ELEMENTS, Math.random);
     const steps = CONFIG.srs.sameDayStepsMinutes.length;
 
     const feedback = h('div', { class: 'feedback-area', 'aria-live': 'polite' });
     const buttons = q.choices.map((c, i) =>
-      h('button', { class: 'choice', onclick: () => answer(i) }, c.label),
+      h('button', { class: 'choice', onclick: () => answerChoice(i) }, c.label),
     );
+    const input = q.format === 'symbolInput' ? inputPad() : null;
 
     replaceChildren(
       box,
@@ -114,19 +128,78 @@ export function renderReview(root: HTMLElement, mode: Mode): void {
           stagePips(card.stage),
         ),
         h('p', { class: 'q-instruction' }, q.instruction),
-        h('p', { class: 'q-prompt' }, q.prompt),
+        promptView(q),
       ),
-      h('div', { class: q.format === 'nameToSymbol' ? 'choices grid' : 'choices' }, buttons),
+      input ? input.root : h('div', { class: q.format === 'nameToSymbol' || q.format === 'valence' ? 'choices grid' : 'choices' }, buttons),
       feedback,
     );
 
-    function answer(i: number): void {
+    /** 4択の答え */
+    function answerChoice(i: number): void {
       const correct = i === q.answerIndex;
       buttons.forEach((b, j) => {
         b.disabled = true;
         if (j === q.answerIndex) b.classList.add('is-answer');
         if (j === i && !correct) b.classList.add('is-wrong');
       });
+      const value = q.choices[i].value;
+      const chosen: Chosen =
+        q.format === 'category'
+          ? { type: 'category', value: value as Category }
+          : q.format === 'valence'
+            ? { type: 'valence', value: value as number }
+            : { type: 'element', number: value as number };
+      settle(correct, chosen);
+    }
+
+    /**
+     * 記号を入力する欄：文字タイルを押して記号を作り、「決定」で答える。
+     * 使ったタイルは押せなくなり、「1文字消す」で戻る。
+     */
+    function inputPad(): { root: HTMLElement } {
+      let typed = '';
+      const shown = h('p', { class: 'input-display', 'aria-live': 'polite' });
+      const tiles = q.tiles.map((t) => {
+        const b = h('button', { class: 'tile' }, t);
+        b.addEventListener('click', () => type(t, b));
+        return b;
+      });
+      const back = h('button', { class: 'btn btn-sub', onclick: erase }, '1文字消す');
+      const submit = h('button', { class: 'btn btn-primary', onclick: () => finish() }, '決定');
+      const root = h('div', { class: 'input-pad' }, shown, h('div', { class: 'tiles' }, tiles), h('div', { class: 'input-actions' }, back, submit));
+      update();
+      return { root };
+
+      function type(t: string, b: HTMLButtonElement): void {
+        if (typed.length >= SYMBOL_MAX) return;
+        typed += t;
+        b.disabled = true;
+        update();
+      }
+      function erase(): void {
+        if (!typed) return;
+        const last = typed[typed.length - 1];
+        typed = typed.slice(0, -1);
+        const b = tiles.find((x) => x.textContent === last && x.disabled);
+        if (b) b.disabled = false;
+        update();
+      }
+      function update(): void {
+        replaceChildren(shown, typed || h('span', { class: 'input-placeholder' }, '？'));
+        back.disabled = typed === '';
+        submit.disabled = typed === '';
+      }
+      function finish(): void {
+        const correct = typed === q.answerText;
+        [...tiles, back, submit].forEach((b) => (b.disabled = true));
+        shown.classList.add(correct ? 'is-answer' : 'is-wrong');
+        if (!correct) shown.append(h('span', { class: 'input-correct' }, `正解は ${q.answerText}`));
+        settle(correct, { type: 'symbol', text: typed });
+      }
+    }
+
+    /** 答えを記録して、正解・不正解の説明と「次へ」を出す */
+    function settle(correct: boolean, chosen: Chosen): void {
       const now = new Date();
       const result = mode === 'due' ? answerDue(store.get(), number, correct, now) : answerPractice(store.get(), number, correct, now);
       store.set(result.data);
@@ -151,7 +224,7 @@ export function renderReview(root: HTMLElement, mode: Mode): void {
       );
       replaceChildren(
         feedback,
-        correct ? correctFeedback(el, result, now, recheckStep) : wrongFeedback(q, i, el, result, now),
+        correct ? correctFeedback(q, el, result, now, recheckStep) : wrongFeedback(chosen, el, result, now),
         next,
       );
       next.focus({ preventScroll: true });
@@ -230,8 +303,25 @@ function emptyState(mode: Mode): HTMLElement {
   );
 }
 
+/** 問題の大きく出す部分：文字・周期表の位置・電子殻の図 */
+function promptView(q: Question): HTMLElement {
+  if (q.display === 'position') return h('div', { class: 'q-position' }, renderMiniTable([{ number: q.target, kind: 'target' }], true));
+  if (q.display === 'bohr') return h('div', { class: 'q-bohr' }, renderBohr(getElement(q.target), 'bohr q-bohr-svg'));
+  return h('p', { class: 'q-prompt' }, q.prompt);
+}
+
+/** 価電子の説明（電子殻の電子の数から） */
+function valenceNote(el: ElementData): string {
+  const outer = el.shells[el.shells.length - 1];
+  const tail =
+    el.group === 18
+      ? `いちばん外側に${outer}個ありますが、貴ガスは安定で結合しにくいため、価電子は0個として数えます。`
+      : `いちばん外側の電子殻に${outer}個あるので、価電子は${valenceOf(el)}個です。`;
+  return `${el.nameJa}の電子殻は ${el.shells.join('-')}。${tail}`;
+}
+
 /** 正解したとき */
-function correctFeedback(el: ElementData, result: AnswerResult, now: Date, recheckStep: number): HTMLElement {
+function correctFeedback(q: Question, el: ElementData, result: AnswerResult, now: Date, recheckStep: number): HTMLElement {
   return h(
     'div',
     { class: 'feedback ok' },
@@ -243,6 +333,7 @@ function correctFeedback(el: ElementData, result: AnswerResult, now: Date, reche
       result.fragments > 0 ? h('span', { class: 'stone-gain fragment' }, `+${result.fragments} かけら`) : null,
       h('span', { class: 'muted' }, outcomeText(el.number, result, now, true, recheckStep)),
     ),
+    q.format === 'valence' ? h('p', { class: 'valence-note' }, valenceNote(el)) : null,
     answerSummary(el),
   );
 }
@@ -276,32 +367,45 @@ function outcomeText(number: number, result: AnswerResult, now: Date, correct: b
   return result.fragments > 0 ? `自主練習のかけら 今日あと${left}個` : '自主練習のかけらは今日の上限です';
 }
 
-/** 不正解のとき：選んだものと正解を並べて見せる */
-function wrongFeedback(q: Question, chosenIndex: number, answer: ElementData, result: AnswerResult, now: Date): HTMLElement {
-  const chosenValue = q.choices[chosenIndex].value;
-  let level: ClosenessLevel;
+/**
+ * 不正解のとき：選んだものと正解を並べて見せる。
+ * 元素を選んだ（または実在する記号を入力した）ときは、比較表と周期表の位置で違いを見せる。
+ */
+function wrongFeedback(chosen: Chosen, answer: ElementData, result: AnswerResult, now: Date): HTMLElement {
+  let level: ClosenessLevel = 0;
+  let relation: string | null = null;
   let compare: HTMLElement;
-  const marks: { number: number; kind: 'chosen' | 'answer' }[] = [{ number: answer.number, kind: 'answer' }];
-  if (typeof chosenValue === 'number') marks.unshift({ number: chosenValue, kind: 'chosen' });
-  if (typeof chosenValue === 'string') {
-    // 分類当て
-    level = categoryCloseness(chosenValue as Category, answer.category);
+  const chosenEl =
+    chosen.type === 'element' ? getElement(chosen.number) : chosen.type === 'symbol' ? (ELEMENTS.find((e) => e.symbol === chosen.text) ?? null) : null;
+  const marks: MiniMark[] = [{ number: answer.number, kind: 'answer' }];
+  if (chosenEl) marks.unshift({ number: chosenEl.number, kind: 'chosen' });
+
+  if (chosen.type === 'category') {
+    level = categoryCloseness(chosen.value, answer.category);
+    compare = compareChips(catChip(chosen.value), catChip(answer.category));
+  } else if (chosen.type === 'valence') {
+    const d = Math.abs(chosen.value - (valenceOf(answer) ?? 0));
+    level = d === 1 ? 2 : d === 2 ? 1 : 0;
     compare = h(
       'div',
-      { class: 'compare-cats' },
-      h('div', {}, h('span', { class: 'muted' }, 'あなたの答え'), catChip(chosenValue as Category)),
-      h('div', {}, h('span', { class: 'muted' }, '正解'), catChip(answer.category)),
+      { class: 'valence-compare' },
+      compareChips(plainChip(`${chosen.value}個`), plainChip(`${valenceOf(answer)}個`)),
+      h('p', { class: 'valence-note' }, valenceNote(answer)),
     );
+  } else if (chosenEl) {
+    level = elementCloseness(chosenEl, answer);
+    relation = relationText(chosenEl, answer);
+    compare = compareTable(chosenEl, answer);
   } else {
-    const chosen = getElement(chosenValue);
-    level = elementCloseness(chosen, answer);
-    compare = compareTable(chosen, answer);
+    // 実在しない記号を入力したとき
+    relation = `「${chosen.type === 'symbol' ? chosen.text : ''}」という記号の元素はありません`;
+    compare = compareChips(plainChip(chosen.type === 'symbol' ? chosen.text : ''), plainChip(answer.symbol));
   }
   return h(
     'div',
     { class: `feedback ng close-${level}` },
     h('p', { class: 'fb-title' }, CLOSENESS_LABEL[level]),
-    typeof chosenValue === 'number' ? h('p', { class: 'relation' }, relationText(getElement(chosenValue), answer)) : null,
+    relation ? h('p', { class: 'relation' }, relation) : null,
     compare,
     h(
       'div',
@@ -310,8 +414,8 @@ function wrongFeedback(q: Question, chosenIndex: number, answer: ElementData, re
       h(
         'p',
         { class: 'mt-legend' },
-        typeof chosenValue === 'number' ? h('span', { class: 'mt-key mt-chosen' }) : null,
-        typeof chosenValue === 'number' ? '選んだ元素 ' : null,
+        chosenEl ? h('span', { class: 'mt-key mt-chosen' }) : null,
+        chosenEl ? '選んだ元素 ' : null,
         h('span', { class: 'mt-key mt-answer' }),
         '正解',
       ),
@@ -384,4 +488,18 @@ function answerSummary(el: ElementData): HTMLElement {
 
 function catChip(c: Category): HTMLElement {
   return h('span', { class: `cat-chip ${CATEGORY_CLASS[c]}` }, c);
+}
+
+function plainChip(text: string): HTMLElement {
+  return h('span', { class: 'cat-chip plain' }, text);
+}
+
+/** 「あなたの答え」と「正解」を左右に並べる */
+function compareChips(mine: HTMLElement, right: HTMLElement): HTMLElement {
+  return h(
+    'div',
+    { class: 'compare-cats' },
+    h('div', {}, h('span', { class: 'muted' }, 'あなたの答え'), mine),
+    h('div', {}, h('span', { class: 'muted' }, '正解'), right),
+  );
 }

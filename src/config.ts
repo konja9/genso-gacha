@@ -9,7 +9,11 @@ export type QuizFormat =
   | 'nameToSymbol' // 名前 → 記号
   | 'category' // 分類当て
   | 'useToElement' // 用途 → 元素
-  | 'numberToName'; // 原子番号 → 名前
+  | 'numberToName' // 原子番号 → 名前
+  | 'position' // 周期表の位置 → 名前
+  | 'valence' // 価電子の数（典型元素だけ）
+  | 'bohrToElement' // 電子殻の図 → 名前（原子番号20まで）
+  | 'symbolInput'; // 名前 → 記号を文字タイルで入力（思い出して書く）
 
 export const CONFIG = {
   /** ガチャ */
@@ -22,6 +26,8 @@ export const CONFIG = {
     costSingle: 8,
     /** 10連の値段（石） */
     costTen: 80,
+    /** 10連では SR 以上を1枚確定にする（9枚目までに出なければ、10枚目が SR 以上になる） */
+    tenGuaranteeHigh: true,
     /**
      * 無料ガチャが回復する時刻（時）。この時刻から次の時刻までの間に1回引ける。
      * [0, 6, 12, 18] なら 0時・6時・12時・18時に1回ずつ回復する（1日最大4回）。
@@ -84,16 +90,21 @@ export const CONFIG = {
     choices: 4,
     /**
      * 段階ごとに出題する形式。ここに並べた形式を、復習のたびに順番に回す。
-     * 段階が上がるほど難しい形式が加わる。
+     * 段階が上がるほど難しい形式が加わる。段階4からは「名前→記号」の4択のかわりに、記号を自分で入力する。
+     * 価電子（典型元素だけ）と電子殻の図（原子番号20まで）は、当てはまる元素のときだけ出る。
      */
     formatsByStage: [
       ['symbolToName', 'nameToSymbol'],
       ['symbolToName', 'nameToSymbol'],
-      ['symbolToName', 'nameToSymbol', 'category', 'useToElement'],
-      ['symbolToName', 'nameToSymbol', 'category', 'useToElement'],
-      ['symbolToName', 'nameToSymbol', 'category', 'useToElement', 'numberToName'],
-      ['symbolToName', 'nameToSymbol', 'category', 'useToElement', 'numberToName'],
+      ['symbolToName', 'nameToSymbol', 'category', 'useToElement', 'position', 'valence', 'bohrToElement'],
+      ['symbolToName', 'nameToSymbol', 'category', 'useToElement', 'position', 'valence', 'bohrToElement'],
+      ['symbolToName', 'symbolInput', 'category', 'useToElement', 'numberToName', 'position', 'valence', 'bohrToElement'],
+      ['symbolToName', 'symbolInput', 'category', 'useToElement', 'numberToName', 'position', 'valence', 'bohrToElement'],
     ] satisfies QuizFormat[][],
+    /** 電子殻の図の問題を出す原子番号の上限（電子を数えられる大きさまで） */
+    bohrMaxNumber: 20,
+    /** 記号を入力する問題の文字タイルの数 */
+    inputTiles: 8,
     /** 誤答の候補として、似ている順に上位この数から選ぶ（小さいほど紛らわしい） */
     distractorPool: 8,
     /** 自主練習1回あたりの問題数 */

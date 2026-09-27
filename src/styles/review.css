@@ -25,7 +25,7 @@
 .q-prompt { font-size: 2.6rem; font-weight: 800; line-height: 1.2; word-break: break-word; }
 .fmt-symbolToName .q-prompt, .fmt-numberToName .q-prompt { font-size: 3.4rem; }
 .fmt-useToElement .q-prompt { font-size: 1.05rem; font-weight: 600; text-align: left; line-height: 1.7; }
-.fmt-category .q-prompt { font-size: 1.8rem; }
+.fmt-category .q-prompt, .fmt-valence .q-prompt { font-size: 1.8rem; }
 
 .choices { display: grid; gap: 10px; }
 .choices.grid { grid-template-columns: 1fr 1fr; }
@@ -146,6 +146,56 @@
 .mt-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .mt-key.mt-chosen { background: var(--bad); }
 .mt-key.mt-answer { background: var(--good); margin-left: 6px; }
+
+/* 位置当て・電子殻の図の問題 */
+.q-position { padding: 4px 0; }
+.mt-cell.mt-target { background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: target-blink 1.2s ease-in-out infinite; }
+@keyframes target-blink { 50% { box-shadow: 0 0 2px var(--warn); opacity: 0.7; } }
+.q-bohr { display: grid; place-items: center; }
+/* 問題では図を止め、分類の色も出さない（手がかりにならないように） */
+.q-bohr-svg { width: 168px; height: 168px; }
+.q-bohr-svg .bohr-ring { animation: none; }
+.q-bohr-svg .bohr-orbit { stroke: var(--muted); }
+.q-bohr-svg .bohr-nucleus { fill: var(--accent); }
+.valence-note { font-size: 0.88rem; }
+.valence-compare { display: grid; gap: 10px; }
+
+/* 記号を入力する問題 */
+.input-pad { display: grid; gap: 12px; }
+.input-display {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 2.6rem;
+  font-weight: 800;
+  border-radius: 12px;
+  border: 2px dashed var(--line);
+  background: var(--surface);
+}
+.input-display.is-answer { border: 2px solid var(--good); }
+.input-display.is-wrong { border: 2px solid var(--bad); }
+.input-placeholder { color: var(--muted); opacity: 0.5; }
+.input-correct { font-size: 1rem; color: var(--good); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tile {
+  appearance: none;
+  font: inherit;
+  font-size: 1.6rem;
+  font-weight: 800;
+  min-height: 56px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.tile:disabled { opacity: 0.3; cursor: default; }
+.tile:active:not(:disabled) { transform: scale(0.96); }
+.input-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.cat-chip.plain { background: var(--surface-2); border-color: var(--line); font-size: 1.1rem; }
 
 /* はじめて出会うカードの紹介 */
 .intro { display: grid; gap: 14px; }

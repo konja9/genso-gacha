@@ -102,6 +102,30 @@ describe('未所持優先とかけら', () => {
     }
   });
 
+  it('10連の確定枠：9枚目までにSR以上が出なければ、10枚目がSR以上になる', () => {
+    const alwaysN = () => 0; // 毎回いちばん低いレア度（N）が出る乱数
+    const { outcomes, pityCount } = pullMany(10, new Set(), 0, RARITY_TABLE, alwaysN, true);
+    expect(outcomes.slice(0, 9).every((o) => o.rarity === 'N')).toBe(true);
+    expect(isHighRarity(outcomes[9].rarity)).toBe(true);
+    expect(outcomes[9].guaranteed).toBe(true);
+    expect(outcomes[9].pityTriggered).toBe(false);
+    expect(pityCount).toBe(0);
+  });
+
+  it('確定枠なしなら、10枚すべてNのこともある', () => {
+    const { outcomes } = pullMany(10, new Set(), 0, RARITY_TABLE, () => 0);
+    expect(outcomes.every((o) => o.rarity === 'N' && !o.guaranteed)).toBe(true);
+  });
+
+  it('10連の確定枠つきなら、どの乱数でも必ずSR以上が1枚以上入る', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      const { outcomes } = pullMany(10, new Set(), 0, RARITY_TABLE, seededRng(seed), true);
+      expect(outcomes.some((o) => isHighRarity(o.rarity))).toBe(true);
+      // 途中でSR以上が出ていれば、確定枠は使われない
+      expect(outcomes.filter((o) => o.guaranteed).length).toBeLessThanOrEqual(1);
+    }
+  });
+
   it('出た元素のレア度は、レア度表どおり', () => {
     const { outcomes } = pullMany(500, new Set(), 0, RARITY_TABLE, seededRng(8));
     for (const o of outcomes) expect(RARITY_TABLE[o.rarity]).toContain(o.number);

@@ -119,7 +119,7 @@ export function canPull(data: SaveData, kind: PullKind, now: Date): boolean {
 /**
  * ガチャを引く。
  * 新しく入手した元素は、その時点で学習対象（段階0・今日が期限）になる。
- * 重複した元素はかけらに変わる。
+ * 重複した元素はかけらに変わる。10連は SR 以上が1枚確定。
  */
 export function doPull(
   data: SaveData,
@@ -138,7 +138,8 @@ export function doPull(
   if (kind === 'free') next.lastFreeGacha = freeSlotKey(now);
 
   const owned = new Set(Object.keys(next.cards).map(Number));
-  const { outcomes, pityCount } = pullMany(count, owned, next.pityCount, table, rng);
+  const guarantee = kind === 'ten' && CONFIG.gacha.tenGuaranteeHigh;
+  const { outcomes, pityCount } = pullMany(count, owned, next.pityCount, table, rng, guarantee);
   for (const o of outcomes) {
     if (o.isNew) next.cards[o.number] = newCard(today);
     next.fragments += o.fragments;
