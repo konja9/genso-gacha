@@ -1,0 +1,106 @@
+/* ガチャの光の演出 */
+.gacha-fx {
+  --glow: #ffffff;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 50%, rgba(20, 24, 50, 0.92), rgba(5, 6, 14, 0.98));
+  grid-template: 100% / 100%;
+  overflow: hidden;
+  cursor: pointer;
+  animation: fx-in 0.2s ease both;
+}
+.gacha-fx.fx-n { --glow: #e8ecff; }
+.gacha-fx.fx-r { --glow: #6ec3ff; }
+.gacha-fx.fx-sr { --glow: #ffcf4d; }
+.gacha-fx.fx-ssr { --glow: #ff8bd8; }
+.gacha-fx > * { grid-area: 1 / 1; }
+.fx-orb {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--glow) 45%, transparent 72%);
+  box-shadow: 0 0 40px var(--glow), 0 0 90px var(--glow);
+  animation: orb-charge 1.3s ease-in both;
+}
+/* SR 以上：最初は白く、途中で色が変わる */
+.fx-upgrade .fx-orb { animation: orb-charge 1.3s ease-in both, orb-upgrade 2.2s ease both; }
+.fx-ssr .fx-orb { animation: orb-charge 1.3s ease-in both, orb-upgrade 2.2s ease both, orb-rainbow 0.8s linear 1.2s infinite; }
+.fx-rays {
+  position: absolute;
+  left: calc(50% - 80vmax);
+  top: calc(50% - 80vmax);
+  width: 160vmax;
+  height: 160vmax;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow) 28%, transparent) 0deg 6deg, transparent 6deg 18deg);
+  mask: radial-gradient(circle, #000 0%, transparent 60%);
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 60%);
+  opacity: 0;
+  animation: rays 2.6s ease 0.5s both;
+}
+.fx-sparks { width: 0; height: 0; position: relative; }
+.spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: var(--glow);
+  box-shadow: 0 0 10px var(--glow);
+  transform: rotate(var(--a)) translateX(0);
+  opacity: 0;
+  animation: spark 1s ease-out calc(1.1s + var(--d)) both;
+}
+.fx-upgrade .spark { animation-delay: calc(1.8s + var(--d)); }
+.fx-flash { width: 100%; height: 100%; background: var(--glow); opacity: 0; animation: flash 0.6s ease-out 1.15s both; }
+.fx-upgrade .fx-flash { animation-delay: 1.9s; }
+.fx-skip { align-self: end; margin-bottom: calc(40px + env(safe-area-inset-bottom)); color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; }
+.gacha-fx.fx-out { animation: fx-out 0.25s ease both; }
+
+@keyframes fx-in { from { opacity: 0; } }
+@keyframes fx-out { to { opacity: 0; } }
+@keyframes orb-charge {
+  0% { transform: scale(0.2); opacity: 0.3; }
+  60% { transform: scale(0.9); }
+  75% { transform: scale(0.8); }
+  100% { transform: scale(1.3); opacity: 1; }
+}
+@keyframes orb-upgrade {
+  0%, 45% { background: radial-gradient(circle, #fff 0%, #e8ecff 45%, transparent 72%); box-shadow: 0 0 40px #e8ecff; }
+  60% { transform: scale(1.6); }
+  100% { background: radial-gradient(circle, #fff 0%, var(--glow) 45%, transparent 72%); box-shadow: 0 0 60px var(--glow), 0 0 120px var(--glow); transform: scale(1.4); }
+}
+@keyframes orb-rainbow { to { filter: hue-rotate(360deg); } }
+@keyframes rays { 0% { opacity: 0; transform: rotate(0deg) scale(0.6); } 40% { opacity: 1; } 100% { opacity: 0.7; transform: rotate(40deg) scale(1); } }
+@keyframes spark { 0% { opacity: 0; transform: rotate(var(--a)) translateX(0); } 10% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateX(46vmin); } }
+@keyframes flash { 0% { opacity: 0; } 25% { opacity: 0.85; } 100% { opacity: 0; } }
+
+/* 結果のカードが1枚ずつ現れる */
+.card.reveal { animation: card-in 0.45s cubic-bezier(0.2, 1.2, 0.4, 1) both; }
+.card.reveal.rar-ssr { animation: card-in 0.45s cubic-bezier(0.2, 1.2, 0.4, 1) both, ssr-spin 4s linear infinite; }
+@keyframes card-in { from { opacity: 0; transform: rotateY(90deg) scale(0.8); } to { opacity: 1; transform: none; } }
+
+/* かけら交換 */
+.btn-exchange { justify-content: space-between; }
+.btn-exchange .cost { font-size: 0.85rem; color: var(--fragment); font-weight: 600; }
+.fragment-count { color: var(--fragment); }
+.exchange-group { margin-bottom: 16px; display: grid; gap: 8px; }
+.exchange-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.exchange-item {
+  appearance: none;
+  font: inherit;
+  color: var(--text);
+  display: grid;
+  justify-items: center;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 2px solid var(--rar);
+  background: color-mix(in srgb, var(--cat) 25%, var(--surface));
+  cursor: pointer;
+}
+.exchange-item:disabled { opacity: 0.45; cursor: not-allowed; }
+.ex-num { font-size: 0.7rem; color: var(--muted); }
+.ex-symbol { font-size: 1.4rem; font-weight: 800; }
+.ex-name { font-size: 0.75rem; }

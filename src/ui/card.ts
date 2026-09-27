@@ -1,9 +1,12 @@
-// 元素カードの描画（画像は使わず、CSS で描く）
+// 元素カードの描画（画像は使わず、CSS と SVG で描く）
+// ・枠のデザインはレア度で変わる（N・R・SR・SSR）
+// ・習熟度（段階）が上がると枠が進化し、段階5で「マスター枠」になる
 import { CONFIG } from '../config';
 import type { CardProgress } from '../core/srs';
 import { isMastered } from '../core/srs';
 import { rarityOf } from '../data/elements';
 import type { ElementData } from '../types';
+import { renderBohr } from './bohr';
 import { CATEGORY_CLASS, RARITY_CLASS } from './colors';
 import { h } from './dom';
 
@@ -18,18 +21,21 @@ export interface CardOptions {
   tagDup?: boolean;
 }
 
+/** 段階に応じた枠のクラス（0〜1：なし、2〜3：銀、4：金、5：マスター） */
+export function frameClass(progress?: CardProgress): string {
+  if (!progress) return '';
+  if (isMastered(progress)) return 'frame-master';
+  if (progress.stage >= 4) return 'frame-gold';
+  if (progress.stage >= 2) return 'frame-silver';
+  return '';
+}
+
 export function renderCard(el: ElementData, opts: CardOptions = {}): HTMLElement {
   const size = opts.size ?? 'full';
   const rarity = rarityOf(el.number);
-  const stage = opts.progress?.stage;
-  const classes = [
-    'card',
-    `card-${size}`,
-    CATEGORY_CLASS[el.category],
-    RARITY_CLASS[rarity],
-    stage !== undefined ? `stage-${stage}` : '',
-    opts.progress && isMastered(opts.progress) ? 'is-master' : '',
-  ].filter(Boolean);
+  const p = opts.progress;
+  const master = p ? isMastered(p) : false;
+  const classes = ['card', `card-${size}`, CATEGORY_CLASS[el.category], RARITY_CLASS[rarity], frameClass(p)].filter(Boolean);
 
   return h(
     'div',
@@ -38,14 +44,17 @@ export function renderCard(el: ElementData, opts: CardOptions = {}): HTMLElement
       'div',
       { class: 'card-top' },
       h('span', { class: 'card-num' }, el.number),
+      p?.everMastered && !master ? h('span', { class: 'card-star', title: '一度マスターしたカード' }, '★') : null,
       h('span', { class: 'card-rarity' }, rarity),
     ),
     opts.tag ? h('span', { class: opts.tagDup ? 'card-tag is-dup' : 'card-tag' }, opts.tag) : null,
-    h('div', { class: 'card-symbol' }, el.symbol),
+    size === 'full'
+      ? h('div', { class: 'card-visual' }, renderBohr(el, 'bohr card-bohr'), h('div', { class: 'card-symbol' }, el.symbol))
+      : h('div', { class: 'card-visual' }, renderBohr(el, 'bohr card-bohr-bg'), h('div', { class: 'card-symbol' }, el.symbol)),
     h('div', { class: 'card-name' }, el.nameJa),
     size === 'full' ? h('div', { class: 'card-en' }, el.nameEn) : null,
     h('div', { class: 'card-cat' }, el.category),
-    stage !== undefined ? stagePips(stage) : null,
+    p ? stagePips(p.stage) : null,
     size === 'full'
       ? h(
           'dl',
@@ -57,6 +66,7 @@ export function renderCard(el: ElementData, opts: CardOptions = {}): HTMLElement
         )
       : null,
     size === 'full' ? h('p', { class: 'card-use' }, el.use) : null,
+    master ? h('div', { class: 'master-ribbon' }, 'MASTER') : null,
   );
 }
 

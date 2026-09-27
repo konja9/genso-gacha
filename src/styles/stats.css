@@ -1,0 +1,21 @@
+/* 記録（グラフ） */
+.chart-panel { gap: 8px; }
+.chart-wrap { position: relative; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
+.chart .axis { stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; }
+.chart .tick { fill: var(--muted); font-size: 10px; }
+.chart .tick.small { font-size: 9px; }
+.chart .value { fill: var(--text); font-size: 11px; font-weight: 700; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 1; }
+.chart .cursor { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .hit { fill: transparent; cursor: pointer; }
+.chart .bar { fill: var(--accent); }
+.chart .bar.master { fill: var(--rar-sr); }
+.chart-tip { font-size: 0.85rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; margin-top: 6px; }
+.chart-note { font-size: 0.75rem; }
+.chart-table summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
+.chart-table table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 6px; }
+.chart-table th, .chart-table td { padding: 4px; border-bottom: 1px solid var(--line); text-align: center; }
+.chart-table th { color: var(--muted); font-weight: 600; }

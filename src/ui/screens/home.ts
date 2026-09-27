@@ -19,7 +19,12 @@ export function renderHome(root: HTMLElement): void {
 
   replaceChildren(
     root,
-    h('header', { class: 'home-head' }, h('h1', { class: 'title' }, '元素ガチャ'), h('p', { class: 'subtitle' }, '集めて、思い出して、覚える')),
+    h(
+      'header',
+      { class: 'home-head' },
+      h('div', {}, h('h1', { class: 'title' }, '元素ガチャ'), h('p', { class: 'subtitle' }, '集めて、思い出して、覚える')),
+      h('button', { class: 'icon-btn', 'aria-label': '設定', onclick: () => go('settings') }, '⚙'),
+    ),
 
     !store.persistent
       ? h('p', { class: 'notice warn' }, 'この環境では進行データを保存できません。ページを閉じると記録が消えます。')

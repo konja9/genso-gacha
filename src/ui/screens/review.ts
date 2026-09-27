@@ -16,6 +16,7 @@ import type { Category, ElementData } from '../../types';
 import { stagePips } from '../card';
 import { CATEGORY_CLASS } from '../colors';
 import { h, replaceChildren } from '../dom';
+import { renderMiniTable } from '../minitable';
 import { go } from '../nav';
 import { store } from '../store';
 
@@ -187,6 +188,8 @@ function wrongFeedback(q: Question, chosenIndex: number, answer: ElementData, re
   const chosenValue = q.choices[chosenIndex].value;
   let level: ClosenessLevel;
   let compare: HTMLElement;
+  const marks: { number: number; kind: 'chosen' | 'answer' }[] = [{ number: answer.number, kind: 'answer' }];
+  if (typeof chosenValue === 'number') marks.unshift({ number: chosenValue, kind: 'chosen' });
   if (typeof chosenValue === 'string') {
     // 分類当て
     level = categoryCloseness(chosenValue as Category, answer.category);
@@ -207,6 +210,19 @@ function wrongFeedback(q: Question, chosenIndex: number, answer: ElementData, re
     h('p', { class: 'fb-title' }, CLOSENESS_LABEL[level]),
     typeof chosenValue === 'number' ? h('p', { class: 'relation' }, relationText(getElement(chosenValue), answer)) : null,
     compare,
+    h(
+      'div',
+      { class: 'minitable-wrap' },
+      renderMiniTable(marks),
+      h(
+        'p',
+        { class: 'mt-legend' },
+        typeof chosenValue === 'number' ? h('span', { class: 'mt-key mt-chosen' }) : null,
+        typeof chosenValue === 'number' ? '選んだ元素 ' : null,
+        h('span', { class: 'mt-key mt-answer' }),
+        '正解',
+      ),
+    ),
     result.counted
       ? h('p', { class: 'muted' }, `段階 ${result.stageBefore} → ${result.stageAfter}・${nextText(now, store.get().cards[answer.number].due)}`)
       : h('p', { class: 'muted' }, '自主練習なので段階は変わりません'),

@@ -1,17 +1,20 @@
-// ガチャ画面（最小版）
+// ガチャ画面
 // ・1日1回の無料ガチャ、1回、10連
 // ・SR以上確定までの残り回数を表示
+// ・引くとレア度に応じた色の光の演出が入り、カードが1枚ずつ現れる
 // ・新しく入手した元素は、その場で学習対象になる
+// ・かけらがたまったら、交換画面へ進める
 import { CONFIG } from '../../config';
 import { today } from '../../core/date';
 import type { PullOutcome } from '../../core/gacha';
-import { pullsUntilPity } from '../../core/gacha';
+import { highestRarity, pullsUntilPity } from '../../core/gacha';
 import { RARITY_TABLE, getElement } from '../../data/elements';
 import type { PullKind } from '../../state/game';
-import { canPull, canUseFree, doPull, pullCost } from '../../state/game';
+import { canExchange, canPull, canUseFree, doPull, pullCost } from '../../state/game';
 import { RARITIES } from '../../types';
 import { renderCard } from '../card';
 import { h, replaceChildren } from '../dom';
+import { playGachaEffect } from '../effects';
 import { go } from '../nav';
 import { store } from '../store';
 
@@ -55,6 +58,12 @@ export function renderGacha(root: HTMLElement): void {
       pullButton('free', canUseFree(data, day) ? '無料で1回引く' : '今日の無料ガチャは引きました', '1日1回'),
       pullButton('single', '1回引く', `石${pullCost('single')}`),
       pullButton('ten', '10連で引く', `石${pullCost('ten')}`),
+      h(
+        'button',
+        { class: 'btn btn-sub btn-exchange', disabled: !canExchange(data), onclick: () => go('exchange') },
+        h('span', {}, 'かけらで好きな元素と交換'),
+        h('span', { class: 'cost' }, `かけら${CONFIG.fragments.exchangeCost}`),
+      ),
     );
   }
 
@@ -68,13 +77,19 @@ export function renderGacha(root: HTMLElement): void {
     );
   }
 
-  function pull(kind: PullKind): void {
+  let busy = false;
+  async function pull(kind: PullKind): Promise<void> {
     const day = today();
-    if (!canPull(store.get(), kind, day)) return;
+    if (busy || !canPull(store.get(), kind, day)) return;
+    busy = true;
+    // 先に結果を決めて保存してから演出を見せる（演出中にアプリを閉じても結果は消えない）
     const { data, outcomes } = doPull(store.get(), kind, day, RARITY_TABLE, Math.random);
     store.set(data);
-    showResult(outcomes);
     refresh();
+    result.textContent = '';
+    await playGachaEffect(highestRarity(outcomes));
+    showResult(outcomes);
+    busy = false;
   }
 
   function showResult(outcomes: PullOutcome[]): void {
@@ -92,14 +107,18 @@ export function renderGacha(root: HTMLElement): void {
       h(
         'div',
         { class: outcomes.length > 1 ? 'result-grid' : 'result-single' },
-        outcomes.map((o) =>
-          renderCard(getElement(o.number), {
+        outcomes.map((o, i) => {
+          const card = renderCard(getElement(o.number), {
             size: outcomes.length > 1 ? 'mini' : 'full',
             progress: data.cards[o.number],
             tag: o.isNew ? 'NEW' : `かけら+${o.fragments}`,
             tagDup: !o.isNew,
-          }),
-        ),
+          });
+          // 1枚ずつ順番に現れる
+          card.classList.add('reveal');
+          card.style.animationDelay = `${i * 0.12}s`;
+          return card;
+        }),
       ),
       newCount > 0
         ? h(

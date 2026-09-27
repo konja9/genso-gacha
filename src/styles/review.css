@@ -98,3 +98,44 @@
 .summary { text-align: center; justify-items: center; }
 .reward-line { color: var(--stone); font-size: 1.4rem; font-weight: 800; }
 .summary-actions { display: grid; gap: 10px; width: 100%; }
+
+/* ───── 「惜しい」演出：近いほど強く揺れて光る ───── */
+.feedback.close-3 { animation: shake-strong 0.6s ease both, glow-warm 1.6s ease 0.2s both; border-color: var(--warn); }
+.feedback.close-3 .fb-title { animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; display: inline-block; }
+.feedback.close-2 { animation: shake-soft 0.45s ease both; border-color: color-mix(in srgb, var(--warn) 60%, var(--bad)); }
+.feedback.close-2 .fb-title { animation: pop 0.4s ease both; display: inline-block; }
+.feedback.close-1 .fb-title { color: color-mix(in srgb, var(--warn) 45%, var(--bad)); }
+.choice.is-wrong { animation: shake-soft 0.35s ease both; }
+.stone-gain { display: inline-block; animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+
+@keyframes shake-strong {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-10px) rotate(-1deg); }
+  30% { transform: translateX(9px) rotate(1deg); }
+  45% { transform: translateX(-7px); }
+  60% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+@keyframes shake-soft {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+@keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes glow-warm {
+  0% { box-shadow: 0 0 0 rgba(255, 200, 87, 0); }
+  30% { box-shadow: 0 0 28px rgba(255, 200, 87, 0.65); }
+  100% { box-shadow: 0 0 10px rgba(255, 200, 87, 0.25); }
+}
+
+/* 小さな周期表 */
+.minitable-wrap { display: grid; gap: 4px; }
+.minitable { display: grid; grid-template-columns: repeat(18, 1fr); grid-template-rows: repeat(7, auto) 4px repeat(2, auto); gap: 1.5px; }
+.mt-cell { aspect-ratio: 1; border-radius: 2px; background: rgba(255, 255, 255, 0.09); }
+.mt-cell.mt-chosen { background: var(--bad); box-shadow: 0 0 6px var(--bad); }
+.mt-cell.mt-answer { background: var(--good); box-shadow: 0 0 6px var(--good); }
+.mt-legend { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.mt-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.mt-key.mt-chosen { background: var(--bad); }
+.mt-key.mt-answer { background: var(--good); margin-left: 6px; }
