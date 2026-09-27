@@ -1,0 +1,81 @@
+/* 元素カード（画像は使わず CSS だけで描く） */
+.card {
+  /* --cat（分類の色）と --rar（レア度の色）は base.css の .cat-… / .rar-… で決まる */
+  position: relative;
+  border-radius: var(--radius);
+  border: 2px solid var(--rar);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--cat) 38%, var(--surface)) 0%, var(--surface) 62%);
+  color: var(--text);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+.card-full { padding: 14px 16px 16px; gap: 2px; max-width: 320px; margin: 0 auto; width: 100%; }
+.card-mini { padding: 8px 4px 8px; gap: 0; }
+
+.card-top { width: 100%; display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+.card-num { font-variant-numeric: tabular-nums; color: var(--muted); }
+.card-rarity {
+  color: var(--rar);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+}
+.card-tag {
+  background: var(--good);
+  color: #062b1b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0 8px;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.card-tag.is-dup { background: var(--fragment); color: #1d1033; }
+.card-mini .card-tag { font-size: 0.6rem; padding: 0 5px; margin-top: 2px; }
+.card-symbol { font-size: 3.6rem; font-weight: 800; line-height: 1.1; color: color-mix(in srgb, var(--cat) 55%, #fff); }
+.card-mini .card-symbol { font-size: 1.7rem; margin-top: 2px; }
+.card-mini .card-top { font-size: 0.72rem; }
+.card-name { font-size: 1.2rem; font-weight: 700; }
+.card-mini .card-name { font-size: 0.72rem; line-height: 1.3; word-break: break-all; }
+.card-en { color: var(--muted); font-size: 0.85rem; }
+.card-cat {
+  margin-top: 4px;
+  background: color-mix(in srgb, var(--cat) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat) 60%, transparent);
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+.card-mini .card-cat { font-size: 0.56rem; padding: 0 4px; margin-top: 3px; line-height: 1.5; }
+.card-stage { display: flex; gap: 4px; margin-top: 6px; }
+.pip { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); }
+.pip.on { background: var(--rar-sr); }
+.card-facts {
+  width: 100%;
+  margin: 10px 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.fact { background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 4px 2px; }
+.fact dt { font-size: 0.68rem; color: var(--muted); }
+.fact dd { margin: 0; font-weight: 700; font-size: 0.85rem; word-break: break-all; }
+.card-use { margin-top: 8px; font-size: 0.88rem; text-align: left; color: #dfe3ff; }
+
+/* レア度の枠（最小版。演出の段階で作り込む） */
+.card.rar-sr { border-width: 3px; box-shadow: 0 0 14px color-mix(in srgb, var(--rar-sr) 45%, transparent); }
+.card.rar-ssr {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--cat) 38%, var(--surface)) 0%, var(--surface) 62%) padding-box,
+    conic-gradient(from 0deg, #ff7aa8, #ffd36e, #7dffb0, #6ec8ff, #b18cff, #ff7aa8) border-box;
+  box-shadow: 0 0 18px rgba(255, 139, 216, 0.4);
+}
+.card.rar-ssr .card-rarity {
+  background: linear-gradient(90deg, #ff7aa8, #ffd36e, #7dffb0, #6ec8ff, #b18cff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

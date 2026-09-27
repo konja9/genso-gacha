@@ -1,0 +1,20 @@
+/* ガチャ（最小版） */
+.gacha-status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.stat-pity .stat-value { color: var(--rar-sr); }
+.gacha-actions { display: grid; gap: 10px; margin-bottom: 16px; }
+.btn-pull { justify-content: space-between; }
+.btn-pull .cost { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.pull-free { background: linear-gradient(135deg, #2bb673, #1b8a8f); border: none; }
+.pull-free .cost { color: rgba(255, 255, 255, 0.8); }
+.pull-ten { background: linear-gradient(135deg, #7b5cff, #ff6fb5); border: none; }
+.pull-ten .cost { color: rgba(255, 255, 255, 0.85); }
+.gacha-result { display: grid; gap: 12px; margin-bottom: 16px; scroll-margin-top: 12px; }
+.gacha-result:empty { display: none; }
+.result-line { font-weight: 700; }
+.result-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.result-next { display: grid; gap: 10px; }
+.rates { font-size: 0.78rem; }
+
+@media (max-width: 360px) {
+  .result-grid { grid-template-columns: repeat(4, 1fr); }
+}
