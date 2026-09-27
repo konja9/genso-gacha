@@ -50,6 +50,13 @@
 .choice:disabled:not(.is-answer):not(.is-wrong) { opacity: 0.5; }
 
 .feedback-area { display: grid; gap: 12px; scroll-margin-bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom)); }
+/* 不正解の説明が長くても「次へ」が下のタブに隠れないよう、画面の下に貼りつける */
+.feedback-area .next-btn {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom));
+  z-index: 5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
 .feedback { border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; border: 2px solid var(--line); background: var(--surface); }
 .feedback.ok { border-color: var(--good); }
 .feedback.ng { border-color: var(--bad); }
@@ -139,6 +146,10 @@
 .mt-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .mt-key.mt-chosen { background: var(--bad); }
 .mt-key.mt-answer { background: var(--good); margin-left: 6px; }
+
+/* はじめて出会うカードの紹介 */
+.intro { display: grid; gap: 14px; }
+.intro-lead { text-align: center; color: var(--muted); }
 
 /* 当日の確認 */
 .recheck-tag { font-size: 0.75rem; color: #062b3a; background: var(--stone); border-radius: 999px; padding: 0 8px; font-weight: 700; }

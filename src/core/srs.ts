@@ -1,6 +1,6 @@
 // 間隔反復（ライトナー方式）＋当日の確認
 // ・段階は0〜5。段階ごとに次の復習までの日数が決まっている（当日・1日・3日・7日・14日・30日）
-// ・正解で1段階上がり、不正解で段階1に戻る
+// ・正解で1段階上がり、不正解で2段階下がる（段階1より下にはならない）
 // ・出題するのは復習期限が来たカードだけ
 // ・新しく入手したカードの最初の問題と、不正解だった復習の後は、同じ日のうちに
 //   「10分後 → 1時間後」ともう一度確認する（当日の確認）。確認では段階は変わらない
@@ -71,8 +71,8 @@ export function startRecheck(now: Date): Recheck {
  * 新しいカード（段階0）の最初の問題と、不正解のときは、当日の確認を始める。
  */
 export function applyReview(card: CardProgress, correct: boolean, now: Date): CardProgress {
-  const { intervalsDays, wrongStage, masterStage } = CONFIG.srs;
-  const stage = correct ? Math.min(card.stage + 1, masterStage) : wrongStage;
+  const { intervalsDays, wrongDrop, wrongStage, masterStage } = CONFIG.srs;
+  const stage = correct ? Math.min(card.stage + 1, masterStage) : Math.max(card.stage - wrongDrop, wrongStage);
   return {
     ...card,
     stage,

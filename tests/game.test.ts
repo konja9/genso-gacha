@@ -28,9 +28,15 @@ describe('復習に答える', () => {
     expect(r.data.daily[TODAY]).toMatchObject({ dueTotal: 1, dueCorrect: 1, stonesEarned: r.stones });
   });
 
-  it('不正解なら石は出ず、段階1に戻る', () => {
+  it('不正解なら石は出ず、段階が2つ下がる', () => {
     const r = answerDue(withCard(26, 4, TODAY), 26, false, NOON);
     expect(r.stones).toBe(0);
+    expect(r.data.cards[26].stage).toBe(2);
+    expect(r.data.cards[26].due).toBe('2026-09-29');
+  });
+
+  it('低い段階で不正解なら段階1になり、翌日にまた出る', () => {
+    const r = answerDue(withCard(26, 2, TODAY), 26, false, NOON);
     expect(r.data.cards[26].stage).toBe(1);
     expect(r.data.cards[26].due).toBe(TOMORROW);
   });

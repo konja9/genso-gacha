@@ -1,5 +1,7 @@
 // 間隔反復（ライトナー方式）
 import { describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/config';
+import { addDays } from '../src/core/date';
 import type { CardProgress } from '../src/core/srs';
 import { applyReview, dueList, isDue, isMastered, newCard, practiceList } from '../src/core/srs';
 
@@ -44,11 +46,12 @@ describe('ライトナー方式', () => {
     expect(next.due).toBe('2026-10-26');
   });
 
-  it('不正解ならどの段階からでも段階1に戻り、翌日に期限が来る', () => {
+  it('不正解なら2段階下がる（段階1より下にはならない）', () => {
+    const expected = [1, 1, 1, 1, 2, 3];
     for (const stage of [0, 1, 2, 3, 4, 5]) {
       const next = applyReview({ ...newCard(TODAY), stage }, false, NOON);
-      expect(next.stage).toBe(1);
-      expect(next.due).toBe('2026-09-27');
+      expect(next.stage).toBe(expected[stage]);
+      expect(next.due).toBe(addDays(TODAY, CONFIG.srs.intervalsDays[expected[stage]]));
     }
   });
 

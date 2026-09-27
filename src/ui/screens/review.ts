@@ -2,6 +2,7 @@
 // ・期限の来たカードに正解すると石がもらえる。当日の確認に正解すると石が少しもらえる
 // ・自主練習では石も段階も変わらないが、正解すると1日の上限まで「かけら」がもらえる
 // ・不正解のときは、選んだ元素と正解を並べて違いを見せ、周期表で近いほど「惜しい」を強く出す
+// ・はじめて出題するカードは、先にカードを大きく見せてから問題に進む
 import { CONFIG } from '../../config';
 import type { ClosenessLevel } from '../../core/closeness';
 import { CLOSENESS_LABEL, categoryCloseness, elementCloseness } from '../../core/closeness';
@@ -14,7 +15,7 @@ import { ELEMENTS, getElement } from '../../data/elements';
 import type { AnswerKind, AnswerResult } from '../../state/game';
 import { answerDue, answerKind, answerPractice, practiceFragmentsLeft } from '../../state/game';
 import type { Category, ElementData } from '../../types';
-import { stagePips } from '../card';
+import { renderCard, stagePips } from '../card';
 import { CATEGORY_CLASS } from '../colors';
 import { h, replaceChildren } from '../dom';
 import { renderMiniTable } from '../minitable';
@@ -41,11 +42,53 @@ export function renderReview(root: HTMLElement, mode: Mode): void {
   let fragmentsTotal = 0;
   showQuestion();
 
-  function showQuestion(): void {
+  /** 上の帯（モード・何問目か・やめる）と進み具合のバー */
+  function head(): HTMLElement[] {
+    return [
+      h(
+        'div',
+        { class: 'review-head' },
+        h('span', { class: mode === 'due' ? 'mode-tag due' : 'mode-tag practice' }, mode === 'due' ? '復習' : '自主練習'),
+        h('span', { class: 'progress-text' }, `${index + 1} / ${queue.length}`),
+        h('button', { class: 'link-btn', onclick: () => go('home') }, 'やめる'),
+      ),
+      h('div', { class: 'progress-bar' }, h('span', { style: `width:${(index / queue.length) * 100}%` })),
+    ];
+  }
+
+  /** はじめて出題するカード（まだ一度も答えていない新しいカード）か */
+  function isFirstMeeting(number: number, kind: AnswerKind): boolean {
+    const card = store.get().cards[number];
+    return kind === 'review' && card.stage === 0 && card.reviews === 0;
+  }
+
+  /** はじめて出会うカードを大きく見せる。「問題へ」で出題に進む */
+  function showIntro(number: number): void {
+    const el = getElement(number);
+    const toQuestion = h('button', { class: 'btn btn-primary', onclick: () => showQuestion(true) }, '覚えた！問題へ');
+    replaceChildren(
+      box,
+      ...head(),
+      h(
+        'section',
+        { class: 'intro' },
+        h('p', { class: 'intro-lead' }, 'はじめて出会う元素です。記号と名前をよく見てから問題に進もう。'),
+        renderCard(el, { progress: store.get().cards[number], tag: 'NEW' }),
+        toQuestion,
+      ),
+    );
+    toQuestion.focus({ preventScroll: true });
+  }
+
+  function showQuestion(introDone = false): void {
     const number = queue[index];
     const card = store.get().cards[number];
     const el = getElement(number);
     const kind: AnswerKind = mode === 'due' ? answerKind(store.get(), number, new Date()) : 'practice';
+    if (!introDone && isFirstMeeting(number, kind)) {
+      showIntro(number);
+      return;
+    }
     const recheckStep = kind === 'recheck' && card.recheck ? card.recheck.step : 0;
     // 形式は回数で順番に回す。確認は、直前の復習の次の形式から始める（同じ形式が続かないように）
     const seq = kind === 'review' ? card.reviews : kind === 'recheck' ? card.reviews + recheckStep : card.practiced;
@@ -59,14 +102,7 @@ export function renderReview(root: HTMLElement, mode: Mode): void {
 
     replaceChildren(
       box,
-      h(
-        'div',
-        { class: 'review-head' },
-        h('span', { class: mode === 'due' ? 'mode-tag due' : 'mode-tag practice' }, mode === 'due' ? '復習' : '自主練習'),
-        h('span', { class: 'progress-text' }, `${index + 1} / ${queue.length}`),
-        h('button', { class: 'link-btn', onclick: () => go('home') }, 'やめる'),
-      ),
-      h('div', { class: 'progress-bar' }, h('span', { style: `width:${(index / queue.length) * 100}%` })),
+      ...head(),
       h(
         'section',
         { class: `question fmt-${q.format}` },
@@ -214,13 +250,20 @@ function correctFeedback(el: ElementData, result: AnswerResult, now: Date, reche
 /**
  * 答えた後に、段階や次の出題がどうなったかをひとことで。
  * 例：「段階 0 → 1・明日また出ます・10分後にもう一度確認」「確認 1/2 クリア・次は1時間後」
+ * はじめての出題で不正解のときは「覚えはじめ」、段階が変わらないときは「段階 1 のまま」とする。
  */
 function outcomeText(number: number, result: AnswerResult, now: Date, correct: boolean, recheckStep: number): string {
   const card = store.get().cards[number];
   const steps = CONFIG.srs.sameDayStepsMinutes.length;
   const later = card.recheck ? formatDuration(card.recheck.at - now.getTime()) : '';
   if (result.kind === 'review') {
-    const parts = [`段階 ${result.stageBefore} → ${result.stageAfter}`, nextText(toDateKey(now), card.due)];
+    const stage =
+      result.stageBefore === 0 && !correct
+        ? '覚えはじめ'
+        : result.stageBefore === result.stageAfter
+          ? `段階 ${result.stageAfter} のまま`
+          : `段階 ${result.stageBefore} → ${result.stageAfter}`;
+    const parts = [stage, nextText(toDateKey(now), card.due)];
     if (card.recheck) parts.push(`${later}後にもう一度確認`);
     return parts.join('・');
   }
