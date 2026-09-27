@@ -10,6 +10,9 @@ export interface DailyLike {
   practiceTotal: number;
   practiceCorrect: number;
   stonesEarned: number;
+  /** 当日の確認（前の版の記録にはない） */
+  recheckTotal?: number;
+  recheckCorrect?: number;
 }
 
 export interface AccuracyPoint {
@@ -54,11 +57,13 @@ export function streakDays(daily: Readonly<Record<string, DailyLike>>, today: st
 }
 
 /** これまでの合計 */
-export function totals(daily: Readonly<Record<string, DailyLike>>): DailyLike & { days: number } {
-  const t = { dueTotal: 0, dueCorrect: 0, practiceTotal: 0, practiceCorrect: 0, stonesEarned: 0, days: 0 };
+export function totals(daily: Readonly<Record<string, DailyLike>>): Required<DailyLike> & { days: number } {
+  const t = { dueTotal: 0, dueCorrect: 0, practiceTotal: 0, practiceCorrect: 0, stonesEarned: 0, recheckTotal: 0, recheckCorrect: 0, days: 0 };
   for (const d of Object.values(daily)) {
     t.dueTotal += d.dueTotal;
     t.dueCorrect += d.dueCorrect;
+    t.recheckTotal += d.recheckTotal ?? 0;
+    t.recheckCorrect += d.recheckCorrect ?? 0;
     t.practiceTotal += d.practiceTotal;
     t.practiceCorrect += d.practiceCorrect;
     t.stonesEarned += d.stonesEarned;

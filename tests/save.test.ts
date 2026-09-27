@@ -21,7 +21,19 @@ function sampleSave(): SaveData {
   s.stones = 42;
   s.fragments = 7;
   s.cards[26] = { ...newCard('2026-09-20'), stage: 3, due: '2026-09-30', reviews: 5, correct: 4 };
-  s.daily['2026-09-26'] = { dueTotal: 3, dueCorrect: 2, practiceTotal: 1, practiceCorrect: 1, stonesEarned: 5, pulls: 1 };
+  s.daily['2026-09-26'] = {
+    dueTotal: 3,
+    dueCorrect: 2,
+    practiceTotal: 1,
+    practiceCorrect: 1,
+    stonesEarned: 5,
+    pulls: 1,
+    recheckTotal: 2,
+    recheckCorrect: 1,
+    practiceFragments: 1,
+  };
+  s.cards[8] = { ...newCard('2026-09-26'), stage: 1, due: '2026-09-27', recheck: { day: '2026-09-26', step: 1, at: 1_790_000_000_000 } };
+  s.lastFreeGacha = '2026-09-26@12';
   return s;
 }
 
@@ -58,6 +70,41 @@ describe('保存と読み込み', () => {
     expect(bad((s) => ((s.cards as Record<string, unknown>)['200'] = newCard('2026-09-26')))).toThrow('存在しません');
     expect(bad((s) => ((s.cards as Record<string, { stage: number }>)['26'].stage = 9))).toThrow('段階');
     expect(bad((s) => (s.version = 99))).toThrow('版');
+  });
+});
+
+describe('前の版のデータとの互換性', () => {
+  // 当日の確認・自主練習のかけら・6時間ごとの無料ガチャを入れる前の版で保存されたデータ
+  const oldSave = {
+    version: 1,
+    stones: 30,
+    fragments: 2,
+    pityCount: 4,
+    lastFreeGacha: '2026-09-26',
+    cards: {
+      26: { stage: 2, due: '2026-09-28', obtainedOn: '2026-09-20', reviews: 3, correct: 3, practiced: 0, everMastered: false },
+    },
+    daily: { '2026-09-26': { dueTotal: 5, dueCorrect: 4, practiceTotal: 0, practiceCorrect: 0, stonesEarned: 7, pulls: 2 } },
+    totalPulls: 12,
+  };
+
+  it('新しい項目がなくても読み込め、足りない項目は空（null・0）になる', () => {
+    const s = normalizeSave(structuredClone(oldSave));
+    expect(s.stones).toBe(30);
+    expect(s.cards[26]).toMatchObject({ stage: 2, due: '2026-09-28', recheck: null });
+    expect(s.daily['2026-09-26']).toMatchObject({ dueTotal: 5, recheckTotal: 0, recheckCorrect: 0, practiceFragments: 0 });
+    expect(s.lastFreeGacha).toBe('2026-09-26');
+  });
+
+  it('前の版のバックアップファイルも読み込める', () => {
+    const text = JSON.stringify({ app: 'genso-gacha', exportedAt: '2026-09-26T00:00:00Z', data: oldSave });
+    expect(importBackup(text).cards[26].stage).toBe(2);
+  });
+
+  it('確認の予定の形がおかしければ受け付けない', () => {
+    const bad = structuredClone(oldSave) as unknown as { cards: Record<string, Record<string, unknown>> };
+    bad.cards['26'].recheck = { day: 'きのう', step: 0, at: 0 };
+    expect(() => normalizeSave(bad)).toThrow('確認の予定');
   });
 });
 

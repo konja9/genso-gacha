@@ -1,21 +1,30 @@
-// ホーム画面：今日の復習数、石の数、ガチャへの入口
+// ホーム画面：いま解ける問題の数、石の数、ガチャへの入口、次に遊べるもの
+// 開いている間は30秒ごとに描き直し、当日の確認や無料ガチャの回復を反映する。
 import { CONFIG } from '../../config';
-import { daysBetween, today } from '../../core/date';
-import { dueList, isMastered, practiceList } from '../../core/srs';
-import { canUseFree } from '../../state/game';
+import { daysBetween, formatDuration, nextFreeSlotAt, toDateKey } from '../../core/date';
+import { dueList, isMastered, nextRecheck, practiceList } from '../../core/srs';
+import { canUseFree, practiceFragmentsLeft } from '../../state/game';
 import { h, replaceChildren } from '../dom';
 import { go } from '../nav';
 import { store } from '../store';
 
-export function renderHome(root: HTMLElement): void {
+export function renderHome(root: HTMLElement): () => void {
+  draw(root);
+  const timer = setInterval(() => draw(root), 30_000);
+  return () => clearInterval(timer);
+}
+
+function draw(root: HTMLElement): void {
   const data = store.get();
-  const day = today();
+  const now = new Date();
+  const day = toDateKey(now);
   const cards = Object.values(data.cards);
-  const due = dueList(data.cards, day).length;
+  const due = dueList(data.cards, now).length;
   const owned = cards.length;
   const mastered = cards.filter(isMastered).length;
-  const free = canUseFree(data, day);
-  const canPractice = practiceList(data.cards, day, 1).length > 0;
+  const free = canUseFree(data, now);
+  const canPractice = practiceList(data.cards, now, 1).length > 0;
+  const fragLeft = practiceFragmentsLeft(data, day);
 
   replaceChildren(
     root,
@@ -31,7 +40,7 @@ export function renderHome(root: HTMLElement): void {
       : null,
     store.recovered ? h('p', { class: 'notice warn' }, '保存データが読み込めなかったため、はじめからにしました。') : null,
 
-    owned === 0 ? firstRun() : reviewPanel(due, data.cards, day),
+    owned === 0 ? firstRun() : reviewPanel(due, data.cards, now),
 
     h(
       'section',
@@ -49,10 +58,15 @@ export function renderHome(root: HTMLElement): void {
         'button',
         { class: 'btn btn-gacha', onclick: () => go('gacha') },
         h('span', {}, 'ガチャを引く'),
-        free ? h('span', { class: 'pill' }, '無料1回あり') : null,
+        h('span', { class: 'pill' }, free ? '無料1回あり' : `無料まで ${formatDuration(nextFreeSlotAt(now).getTime() - now.getTime())}`),
       ),
       canPractice
-        ? h('button', { class: 'btn btn-sub', onclick: () => go('practice') }, '自主練習（石は出ません）')
+        ? h(
+            'button',
+            { class: 'btn btn-sub', onclick: () => go('practice') },
+            h('span', {}, '自主練習'),
+            h('span', { class: 'pill pill-fragment' }, fragLeft > 0 ? `かけら 今日あと${fragLeft}個` : 'かけらは今日の上限'),
+          )
         : null,
     ),
   );
@@ -72,17 +86,19 @@ function firstRun(): HTMLElement {
   );
 }
 
-function reviewPanel(due: number, cards: ReturnType<typeof store.get>['cards'], day: string): HTMLElement {
+function reviewPanel(due: number, cards: ReturnType<typeof store.get>['cards'], now: Date): HTMLElement {
   if (due > 0) {
     return h(
       'section',
       { class: 'panel panel-due' },
-      h('p', { class: 'panel-label' }, '今日の復習'),
+      h('p', { class: 'panel-label' }, 'いま解ける問題'),
       h('p', { class: 'big-number' }, due, h('small', {}, '枚')),
       h('button', { class: 'btn btn-primary', onclick: () => go('review') }, '復習をはじめる'),
     );
   }
-  // 次に期限が来る日と枚数
+  // 今日の確認が残っていれば、その時刻を。なければ次に期限が来る日と枚数を出す
+  const recheck = nextRecheck(cards, now);
+  const day = toDateKey(now);
   const dues = Object.values(cards).map((c) => c.due).sort();
   const next = dues[0];
   const nextCount = dues.filter((d) => d === next).length;
@@ -90,8 +106,11 @@ function reviewPanel(due: number, cards: ReturnType<typeof store.get>['cards'], 
   return h(
     'section',
     { class: 'panel panel-done' },
-    h('p', { class: 'panel-label' }, '今日の復習'),
+    h('p', { class: 'panel-label' }, 'いま解ける問題'),
     h('p', { class: 'done-text' }, 'すべて完了！'),
+    recheck
+      ? h('p', { class: 'next-recheck' }, `次の確認：あと${formatDuration(recheck.at - now.getTime())}（今日の残り${recheck.count}枚）`)
+      : null,
     next ? h('p', { class: 'muted' }, `次の復習：${days === 1 ? '明日' : `${days}日後`}に${nextCount}枚`) : null,
   );
 }

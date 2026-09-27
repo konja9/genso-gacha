@@ -3,7 +3,7 @@
 // ・読み込んだデータは形をチェックし、壊れていたら使わない
 import { CONFIG } from '../config';
 import { isDateKey } from '../core/date';
-import type { CardProgress } from '../core/srs';
+import type { CardProgress, Recheck } from '../core/srs';
 
 export const SAVE_KEY = 'genso-gacha/save';
 export const SAVE_VERSION = 1;
@@ -20,6 +20,11 @@ export interface DailyStat {
   stonesEarned: number;
   /** その日にガチャを引いた回数 */
   pulls: number;
+  /** 当日の確認：答えた数・正解数 */
+  recheckTotal: number;
+  recheckCorrect: number;
+  /** 自主練習でもらったかけら（1日の上限の判定に使う） */
+  practiceFragments: number;
 }
 
 /** 進行データ全体 */
@@ -31,7 +36,7 @@ export interface SaveData {
   fragments: number;
   /** SR以上が出ないまま続いているガチャの回数（天井用） */
   pityCount: number;
-  /** 最後に無料ガチャを引いた日 */
+  /** 最後に無料ガチャを引いた枠（例：2026-09-27@12）。古いデータでは日付だけ */
   lastFreeGacha: string | null;
   /** 所持カード（キーは原子番号） */
   cards: Record<number, CardProgress>;
@@ -63,7 +68,17 @@ export function createInitialSave(): SaveData {
 }
 
 export function emptyDailyStat(): DailyStat {
-  return { dueTotal: 0, dueCorrect: 0, practiceTotal: 0, practiceCorrect: 0, stonesEarned: 0, pulls: 0 };
+  return {
+    dueTotal: 0,
+    dueCorrect: 0,
+    practiceTotal: 0,
+    practiceCorrect: 0,
+    stonesEarned: 0,
+    pulls: 0,
+    recheckTotal: 0,
+    recheckCorrect: 0,
+    practiceFragments: 0,
+  };
 }
 
 /**
@@ -78,7 +93,10 @@ export function normalizeSave(raw: unknown): SaveData {
   const fragments = nonNegInt(raw.fragments, 'かけらの数');
   const pityCount = nonNegInt(raw.pityCount, '天井の回数');
   const totalPulls = nonNegInt(raw.totalPulls, 'ガチャの合計回数');
-  if (raw.lastFreeGacha !== null && !isDateKey(raw.lastFreeGacha)) throw new Error('無料ガチャの日付が正しくありません');
+  // 無料ガチャの枠は「日付@時」。前の版の「日付だけ」も受け付ける
+  if (raw.lastFreeGacha !== null && !(typeof raw.lastFreeGacha === 'string' && /^\d{4}-\d{2}-\d{2}(@\d{2})?$/.test(raw.lastFreeGacha))) {
+    throw new Error('無料ガチャの日付が正しくありません');
+  }
 
   if (!isObject(raw.cards)) throw new Error('カードのデータがありません');
   const cards: Record<number, CardProgress> = {};
@@ -99,6 +117,10 @@ export function normalizeSave(raw: unknown): SaveData {
       practiceCorrect: nonNegInt(d.practiceCorrect, '記録'),
       stonesEarned: nonNegInt(d.stonesEarned, '記録'),
       pulls: nonNegInt(d.pulls, '記録'),
+      // 次の3つは後から増えた項目。古いデータにはないので0として読む
+      recheckTotal: optInt(d.recheckTotal, '記録'),
+      recheckCorrect: optInt(d.recheckCorrect, '記録'),
+      practiceFragments: optInt(d.practiceFragments, '記録'),
     };
   }
 
@@ -129,7 +151,20 @@ function normalizeCard(c: unknown, key: string): CardProgress {
     correct: nonNegInt(c.correct, `${where}の回数`),
     practiced: nonNegInt(c.practiced, `${where}の回数`),
     everMastered: c.everMastered,
+    recheck: normalizeRecheck(c.recheck, where),
   };
+}
+
+/** 当日の確認の予定。古いデータにはないので null として読む */
+function normalizeRecheck(r: unknown, where: string): Recheck | null {
+  if (r === undefined || r === null) return null;
+  if (!isObject(r) || !isDateKey(r.day) || typeof r.at !== 'number' || !Number.isFinite(r.at)) {
+    throw new Error(`${where}の確認の予定が正しくありません`);
+  }
+  const step = nonNegInt(r.step, `${where}の確認のステップ`);
+  // 設定でステップの数を減らしたときは、その確認は終わったものとして扱う
+  if (step >= CONFIG.srs.sameDayStepsMinutes.length) return null;
+  return { day: r.day, step, at: r.at };
 }
 
 /** 保存済みのデータを読み込む。なければ（または壊れていれば）はじめからのデータを返す */
@@ -151,6 +186,10 @@ export function writeSave(storage: KeyValueStorage, data: SaveData): void {
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function optInt(v: unknown, what: string): number {
+  return v === undefined ? 0 : nonNegInt(v, what);
 }
 
 function nonNegInt(v: unknown, what: string): number {

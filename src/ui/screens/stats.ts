@@ -53,7 +53,7 @@ export function renderStats(root: HTMLElement): void {
       h(
         'p',
         { class: 'muted' },
-        `復習した日 ${t.days}日・期限の復習 ${t.dueCorrect}/${t.dueTotal}問正解・自主練習 ${t.practiceCorrect}/${t.practiceTotal}問正解・もらった石 ${t.stonesEarned}個・ガチャ ${data.totalPulls}回`,
+        `復習した日 ${t.days}日・期限の復習 ${t.dueCorrect}/${t.dueTotal}問正解・当日の確認 ${t.recheckCorrect}/${t.recheckTotal}問正解・自主練習 ${t.practiceCorrect}/${t.practiceTotal}問正解・もらった石 ${t.stonesEarned}個・ガチャ ${data.totalPulls}回`,
       ),
     ),
     h('button', { class: 'btn btn-sub', onclick: () => go('settings') }, '設定（バックアップ・リセット）'),
