@@ -1,7 +1,6 @@
 // 画面の切り替え。URL の # の後ろ（#/gacha など）で画面を決める。
 // GitHub Pages でもページの再読み込みで迷子にならないよう、# を使う方式にしている。
 import { dueList } from '../core/srs';
-import { today } from '../core/date';
 import { h, replaceChildren } from './dom';
 import { store } from './store';
 import { renderHome } from './screens/home';
@@ -55,7 +54,7 @@ function renderNav(): void {
   const route = currentRoute();
   const parent: Partial<Record<Route, Route>> = { practice: 'review', exchange: 'gacha', settings: 'stats' };
   const active = parent[route] ?? route;
-  const due = dueList(store.get().cards, today()).length;
+  const due = dueList(store.get().cards, new Date()).length;
   replaceChildren(
     nav,
     TABS.map((t) =>
@@ -77,6 +76,8 @@ export function startRouter(app: HTMLElement): void {
   window.addEventListener('hashchange', render);
   window.addEventListener('app:rerender', render);
   store.subscribe(renderNav);
+  // 当日の確認の時刻が来たら下のタブの数字を増やすため、30秒ごとに描き直す
+  setInterval(renderNav, 30_000);
   // 日付が変わった後にアプリへ戻ってきたとき、ホームとガチャの表示を新しくする
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;

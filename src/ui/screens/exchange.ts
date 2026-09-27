@@ -1,6 +1,5 @@
 // かけら交換画面：かけらを使って、好きな未所持元素を1枚手に入れる
 import { CONFIG } from '../../config';
-import { today } from '../../core/date';
 import { unownedByRarity } from '../../core/gacha';
 import { RARITY_TABLE, getElement } from '../../data/elements';
 import { exchangeFragments } from '../../state/game';
@@ -63,7 +62,7 @@ export function renderExchange(root: HTMLElement): void {
   function pick(n: number): void {
     const e = getElement(n);
     if (!confirm(`かけら ${CONFIG.fragments.exchangeCost} 個で「${e.nameJa}（${e.symbol}）」と交換しますか？`)) return;
-    const next = exchangeFragments(store.get(), n, today());
+    const next = exchangeFragments(store.get(), n, new Date());
     store.set(next);
     replaceChildren(
       root,

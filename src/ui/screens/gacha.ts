@@ -1,11 +1,11 @@
 // ガチャ画面
-// ・1日1回の無料ガチャ、1回、10連
+// ・6時間ごとに回復する無料ガチャ（0時・6時・12時・18時）、1回、10連
 // ・SR以上確定までの残り回数を表示
 // ・引くとレア度に応じた色の光の演出が入り、カードが1枚ずつ現れる
 // ・新しく入手した元素は、その場で学習対象になる
 // ・かけらがたまったら、交換画面へ進める
 import { CONFIG } from '../../config';
-import { today } from '../../core/date';
+import { formatDuration, nextFreeSlotAt } from '../../core/date';
 import type { PullOutcome } from '../../core/gacha';
 import { highestRarity, pullsUntilPity } from '../../core/gacha';
 import { RARITY_TABLE, getElement } from '../../data/elements';
@@ -18,7 +18,7 @@ import { playGachaEffect } from '../effects';
 import { go } from '../nav';
 import { store } from '../store';
 
-export function renderGacha(root: HTMLElement): void {
+export function renderGacha(root: HTMLElement): () => void {
   const status = h('section', { class: 'gacha-status' });
   const actions = h('section', { class: 'gacha-actions' });
   const result = h('section', { class: 'gacha-result', 'aria-live': 'polite' });
@@ -35,11 +35,19 @@ export function renderGacha(root: HTMLElement): void {
       `排出率 ${RARITIES.map((r) => `${r} ${Math.round(CONFIG.gacha.rates[r] * 100)}%`).join(' / ')}・${CONFIG.gacha.pity}回目までにSR以上確定・同じレア度では未所持を優先`,
     ),
   );
+  /** 演出中は二重に引けないようにする */
+  let busy = false;
   refresh();
+  // 無料ガチャの回復や残り時間を反映するため、30秒ごとにボタンを描き直す
+  const timer = setInterval(() => {
+    if (!busy) refresh();
+  }, 30_000);
+  return () => clearInterval(timer);
 
   function refresh(): void {
     const data = store.get();
-    const day = today();
+    const now = new Date();
+    const free = canUseFree(data, now);
     replaceChildren(
       status,
       h('div', { class: 'stat stat-stone' }, h('span', { class: 'stat-value' }, data.stones), h('span', { class: 'stat-label' }, 'ガチャ石')),
@@ -55,7 +63,11 @@ export function renderGacha(root: HTMLElement): void {
     replaceChildren(
       actions,
       complete ? h('p', { class: 'notice' }, '全118種そろいました！ これからは重複してかけらになります。') : null,
-      pullButton('free', canUseFree(data, day) ? '無料で1回引く' : '今日の無料ガチャは引きました', '1日1回'),
+      pullButton(
+        'free',
+        free ? '無料で1回引く' : `次の無料まで あと${formatDuration(nextFreeSlotAt(now).getTime() - now.getTime())}`,
+        free ? '6時間ごと' : `${CONFIG.gacha.freeSlotStartHours.join('・')}時に回復`,
+      ),
       pullButton('single', '1回引く', `石${pullCost('single')}`),
       pullButton('ten', '10連で引く', `石${pullCost('ten')}`),
       h(
@@ -68,7 +80,7 @@ export function renderGacha(root: HTMLElement): void {
   }
 
   function pullButton(kind: PullKind, label: string, cost: string): HTMLElement {
-    const ok = canPull(store.get(), kind, today());
+    const ok = canPull(store.get(), kind, new Date());
     return h(
       'button',
       { class: `btn btn-pull pull-${kind}`, disabled: !ok, onclick: () => pull(kind) },
@@ -77,13 +89,12 @@ export function renderGacha(root: HTMLElement): void {
     );
   }
 
-  let busy = false;
   async function pull(kind: PullKind): Promise<void> {
-    const day = today();
-    if (busy || !canPull(store.get(), kind, day)) return;
+    const now = new Date();
+    if (busy || !canPull(store.get(), kind, now)) return;
     busy = true;
     // 先に結果を決めて保存してから演出を見せる（演出中にアプリを閉じても結果は消えない）
-    const { data, outcomes } = doPull(store.get(), kind, day, RARITY_TABLE, Math.random);
+    const { data, outcomes } = doPull(store.get(), kind, now, RARITY_TABLE, Math.random);
     store.set(data);
     refresh();
     result.textContent = '';

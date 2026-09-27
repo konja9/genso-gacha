@@ -139,3 +139,8 @@
 .mt-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .mt-key.mt-chosen { background: var(--bad); }
 .mt-key.mt-answer { background: var(--good); margin-left: 6px; }
+
+/* 当日の確認 */
+.recheck-tag { font-size: 0.75rem; color: #062b3a; background: var(--stone); border-radius: 999px; padding: 0 8px; font-weight: 700; }
+.stone-gain.fragment, .reward-line.fragment { color: var(--fragment); }
+.summary .next-recheck { font-size: 0.95rem; }

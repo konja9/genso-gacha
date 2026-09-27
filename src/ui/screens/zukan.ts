@@ -6,7 +6,8 @@
 import { CONFIG } from '../../config';
 import { daysBetween, today } from '../../core/date';
 import { gridPos } from '../../core/periodic';
-import { isMastered } from '../../core/srs';
+import type { Recheck } from '../../core/srs';
+import { activeRecheck, isMastered } from '../../core/srs';
 import { ELEMENTS, RARITY_TABLE, getElement, rarityOf } from '../../data/elements';
 import { CATEGORIES, RARITIES } from '../../types';
 import { renderCard } from '../card';
@@ -138,7 +139,7 @@ export function renderZukan(root: HTMLElement): void {
           'dl',
           { class: 'progress-facts' },
           h('div', {}, h('dt', {}, '段階'), h('dd', {}, `${c.stage} / ${CONFIG.srs.masterStage}`)),
-          h('div', {}, h('dt', {}, '次の復習'), h('dd', {}, days <= 0 ? '今日' : days === 1 ? '明日' : `${days}日後`)),
+          h('div', {}, h('dt', {}, '次の復習'), h('dd', {}, nextLabel(days, activeRecheck(c, day)))),
           h('div', {}, h('dt', {}, '正解'), h('dd', {}, `${c.correct} / ${c.reviews}回`)),
           h('div', {}, h('dt', {}, '入手日'), h('dd', {}, c.obtainedOn.replace(/-/g, '/'))),
         ),
@@ -147,6 +148,15 @@ export function renderZukan(root: HTMLElement): void {
     }
     dialog.showModal();
   }
+}
+
+/** 次の出題の説明（今日の確認が残っていれば、その時刻） */
+function nextLabel(days: number, recheck: Recheck | null): string {
+  if (days > 0 && recheck) {
+    const t = new Date(recheck.at);
+    return `今日 ${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
+  }
+  return days <= 0 ? '今日' : days === 1 ? '明日' : `${days}日後`;
 }
 
 function readMode(): ColorMode {

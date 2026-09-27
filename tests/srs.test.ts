@@ -4,6 +4,13 @@ import type { CardProgress } from '../src/core/srs';
 import { applyReview, dueList, isDue, isMastered, newCard, practiceList } from '../src/core/srs';
 
 const TODAY = '2026-09-26';
+/** 2026-09-26 の昼12時 */
+const NOON = new Date(2026, 8, 26, 12, 0);
+/** 日付 "YYYY-MM-DD" の昼12時 */
+const at = (day: string) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d, 12, 0);
+};
 
 describe('ライトナー方式', () => {
   it('新しいカードは段階0で、その日のうちに期限が来る', () => {
@@ -23,7 +30,7 @@ describe('ライトナー方式', () => {
       [5, '2026-11-20'],
     ];
     for (const [stage, due] of expected) {
-      c = applyReview(c, true, day);
+      c = applyReview(c, true, at(day));
       expect(c.stage).toBe(stage);
       expect(c.due).toBe(due);
       day = c.due;
@@ -32,14 +39,14 @@ describe('ライトナー方式', () => {
 
   it('段階5で正解しても段階5のままで、30日後に期限が来る', () => {
     const c: CardProgress = { ...newCard(TODAY), stage: 5 };
-    const next = applyReview(c, true, TODAY);
+    const next = applyReview(c, true, NOON);
     expect(next.stage).toBe(5);
     expect(next.due).toBe('2026-10-26');
   });
 
   it('不正解ならどの段階からでも段階1に戻り、翌日に期限が来る', () => {
     for (const stage of [0, 1, 2, 3, 4, 5]) {
-      const next = applyReview({ ...newCard(TODAY), stage }, false, TODAY);
+      const next = applyReview({ ...newCard(TODAY), stage }, false, NOON);
       expect(next.stage).toBe(1);
       expect(next.due).toBe('2026-09-27');
     }
@@ -47,24 +54,24 @@ describe('ライトナー方式', () => {
 
   it('答えた回数と正解数を数える', () => {
     let c = newCard(TODAY);
-    c = applyReview(c, true, TODAY);
-    c = applyReview(c, false, TODAY);
+    c = applyReview(c, true, NOON);
+    c = applyReview(c, false, NOON);
     expect(c.reviews).toBe(2);
     expect(c.correct).toBe(1);
   });
 
   it('マスター枠は今の段階で決まり、一度マスターした記録は残る', () => {
-    const master = applyReview({ ...newCard(TODAY), stage: 4 }, true, TODAY);
+    const master = applyReview({ ...newCard(TODAY), stage: 4 }, true, NOON);
     expect(isMastered(master)).toBe(true);
     expect(master.everMastered).toBe(true);
-    const dropped = applyReview(master, false, TODAY);
+    const dropped = applyReview(master, false, NOON);
     expect(isMastered(dropped)).toBe(false);
     expect(dropped.everMastered).toBe(true);
   });
 
   it('元のカードは書き換えない', () => {
     const c = newCard(TODAY);
-    applyReview(c, true, TODAY);
+    applyReview(c, true, NOON);
     expect(c.stage).toBe(0);
   });
 });
@@ -79,14 +86,14 @@ describe('出題するカードの選び方', () => {
   };
 
   it('期限の来たカードだけを、期限の古い順→段階の低い順に並べる', () => {
-    expect(dueList(cards, TODAY)).toEqual([8, 26, 6, 1]);
+    expect(dueList(cards, NOON)).toEqual([8, 26, 6, 1]);
   });
 
   it('期限前のカードは出題しない', () => {
-    expect(dueList(cards, TODAY)).not.toContain(79);
+    expect(dueList(cards, NOON)).not.toContain(79);
   });
 
   it('自主練習は期限前のカードから選ぶ', () => {
-    expect(practiceList(cards, TODAY, 10)).toEqual([79]);
+    expect(practiceList(cards, NOON, 10)).toEqual([79]);
   });
 });

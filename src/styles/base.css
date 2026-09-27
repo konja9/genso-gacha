@@ -207,3 +207,6 @@ h2 { font-size: 1.05rem; }
 /* レア度の札 */
 .rar-badge { display: inline-block; border: 1px solid var(--rar); color: var(--rar); border-radius: 6px; padding: 0 6px; font-weight: 800; font-size: 0.8rem; }
 .rar-badge.rar-ssr { color: var(--rar-ssr); }
+.next-recheck { color: var(--stone); font-weight: 700; }
+.pill-fragment { background: color-mix(in srgb, var(--fragment) 25%, transparent); color: var(--fragment); }
+.btn-sub .pill { font-weight: 600; }
